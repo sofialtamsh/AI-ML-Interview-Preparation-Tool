@@ -1,3 +1,6 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.datastructures import MutableHeaders
@@ -6,6 +9,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from app.api import admin, health, student
 from app.core.config import get_settings
 from app.core.logging import configure_logging
+from app.jobs.runner import start_worker, stop_worker
 
 
 class SecurityHeadersMiddleware:
@@ -32,11 +36,25 @@ class SecurityHeadersMiddleware:
         await self.app(scope, receive, send_with_headers)
 
 
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    # Background jobs only ever start from an explicit admin action; the worker just runs them.
+    worker = get_settings().embedded_worker
+    if worker:
+        start_worker()
+    try:
+        yield
+    finally:
+        if worker:
+            stop_worker()
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(settings.log_level)
 
     app = FastAPI(
+        lifespan=lifespan,
         title="AI/ML Interview Prep Platform API",
         version="0.1.0",
         docs_url=None if settings.is_production else "/api/docs",

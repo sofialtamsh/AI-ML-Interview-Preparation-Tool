@@ -16,7 +16,7 @@ Docker. Another project on the same machine already uses ports 5432/5433/8000/63
 | API | **Python + FastAPI**, Pydantic v2 | The AI side of the product (agents, LLM SDKs, document parsing, testing generated NumPy/scikit-learn code) is Python. One language for the API, workers and agents avoids a second runtime. FastAPI gives typed validation and OpenAPI for free. |
 | ORM / migrations | **SQLAlchemy 2.0 (sync) + Alembic**, psycopg 3 | Mature, explicit SQL control, reviewable migrations. Sync sessions in FastAPI's threadpool are simpler and well proven. Request handlers are short DB calls; slow LLM work never runs in a request. |
 | Database | **PostgreSQL 17** | Relational integrity for provenance, versions and attempts. JSONB holds structured content bodies. Full-text search covers question search. `pgvector` is added only when semantic duplicate detection needs it (Phase 3). |
-| Background jobs | **Postgres-backed job queue** (`jobs` table, `FOR UPDATE SKIP LOCKED`) + separate worker process | Agent and generation jobs are low-volume and long-running, and they need durable status, progress, history and retry, which means a table anyway. This avoids running Redis/Celery for no extra value. Swap in a broker only if throughput ever requires it. |
+| Background jobs | **Postgres-backed job queue** (`jobs` table, `FOR UPDATE SKIP LOCKED`) + a worker (implemented in Phase 2, `app/jobs/runner.py`) | Agent and generation jobs are low-volume and long-running, and they need durable status, progress, history and retry, which means a table anyway. This avoids running Redis/Celery for no extra value. The worker runs as a thread inside the API by default (`IPP_EMBEDDED_WORKER`), or as its own process (`python -m app.cli run-worker`). Swap in a broker only if throughput ever requires it. |
 | Frontend | **React + TypeScript + Vite**, React Router, TanStack Query, Tailwind CSS v4 | A SPA fits a cookie-authenticated API on the same origin. TanStack Query handles caching and deduplication, which avoids redundant API calls. Tailwind provides a consistent design system with small CSS output. Admin and student code are lazily loaded, separate chunks. |
 | Visualizations | Hand-built SVG/Canvas React components (D3 helpers where useful) | Interactive, parameter-driven playgrounds such as gradient descent, K-Means and attention. Static images are not acceptable. |
 | Code playground | **Pyodide (CPython in WebAssembly) in a Web Worker** in the student's browser | Student code never runs on our servers, which satisfies the isolation requirement at zero server cost. Generated reference code is verified server-side in a network-less, resource-limited container (Phase 4/5). |
@@ -63,19 +63,25 @@ survive, and append-only history tables (attempts, events, versions) that are ne
 
 **Permanent records:** activity logs and source records are kept permanently (product owner
 decision, 2026-10-27). A database trigger rejects any UPDATE or DELETE on `audit_logs`,
-`login_events` and `ai_usage_events`. Phase 2–3 tables (`raw_source_records`, extraction and
-research records) get the same treatment. Accounts are disabled, never deleted, so log references
-stay valid.
+`login_events`, `ai_usage_events`, `raw_source_records` and `job_events`, and any DELETE on
+`interview_sources` and `jobs` (their status changes, but rows are never deleted). Phase 3
+extraction and research records get the same treatment. Accounts are disabled, never deleted, so
+log references stay valid.
 
-**Sources & agents (Phases 2–3)**
-- `interview_sources`: name, base URL, connector type, auth method, non-secret config (JSONB),
-  enabled flag, connection status, last attempted/successful sync, incremental sync cursor.
-- `source_credentials`: Fernet ciphertext + key version, plus the *names* of the stored fields only.
-  Secrets are never returned by any API.
-- `jobs` (kind, status, payload, progress, attempts, heartbeat, error, result, triggered_by,
-  parent batch) and `job_events` (execution log).
-- `raw_source_records` (source, external id, URL, content hash, fetched at). Unique on
-  (source, external id), which makes exploration incremental and auditable.
+**Sources & jobs (Phase 2, implemented 2026-10-27)**
+- `interview_sources`: name (unique among active sources), base URL, connector type, sign-in
+  method, non-secret `config` / `auth_config` (JSONB), incremental `sync_state`, enabled flag,
+  connection status + message, last tested / attempted / successful fetch. "Remove" archives the
+  source (`archived_at`) and deletes its credentials; its records stay.
+- `source_credentials`: one Fernet token per source, the id of the key that encrypted it, and the
+  *names* of the stored fields only. Secrets are never returned by any API.
+- `jobs` (kind, status, source, payload, result counters, progress, attempts, heartbeat, cancel
+  flag, error, triggered by) and `job_events` (the execution log).
+- `raw_source_records` (source, job, external id, revision, URL, title, content type, extracted
+  text, content hash, published at, meta). A changed document is stored as a new revision, never
+  overwritten; unchanged content is skipped. This makes fetching incremental and auditable.
+
+**Intelligence (Phase 3)**
 - `interview_experiences` → `interview_questions` (actual questions): company, role, round,
   date or period, original text, technologies, difficulty, topic, extraction confidence,
   verification status, `duplicate_of`, provenance FKs to source, raw record and job.
@@ -183,10 +189,28 @@ query itself, so there is no endpoint that takes another student's ID.
    `intelligence.review` approves, rejects or merges them. Only approved records count in the
    intelligence engine.
 
-Connectors use a plugin interface (`test_connection`, `list_records(cursor)`, `fetch(record)`).
-Generic connectors (REST/JSON API, configurable web pages, RSS, file/document upload) mean a new URL
-is configuration, not code. A site that needs CAPTCHA/MFA is reported as "requires manual import";
-it is never bypassed.
+**Source connectors (implemented in Phase 2, `app/sources/`).** Each connector is a class in
+`CONNECTORS` with a strict Pydantic settings model and form descriptions (`FieldSpec`) that the
+console renders, so a new URL is configuration and a new *kind* of source is one class.
+- **Website pages:** start pages, optional CSS selectors for links to follow (same site only),
+  "next page" pagination and main content; skips pages already fetched.
+- **JSON API:** endpoint, items path, id/title/link/date fields, pagination by page number, offset,
+  next-page URL or cursor, and an optional "changed since" parameter for incremental runs.
+- **RSS / Atom feed:** optionally reads each post's full page.
+- **File import:** CSV, JSON/JSONL, PDF, Word (.docx), text, Markdown and saved HTML. Files can be
+  imported into *any* source; this is the authorised route when a site blocks automation.
+
+Sign-in methods are none, HTTP Basic, bearer token, API key in a header or query parameter, and a
+website login form (hidden CSRF fields are carried over). All outbound requests go through
+`SafeHttp` (`app/sources/http.py`):
+- It refuses private and internal addresses on every hop (SSRF protection).
+- It sends credentials only to the source's own site.
+- It caps size and time, spaces out requests, and retries transient failures on GETs.
+- It honours robots.txt when crawling pages.
+- It reports CAPTCHAs, bot checks and one-time codes as "manual import"; these are never bypassed.
+
+Changing a source's site (or login page) clears its stored credentials, so an admin who may edit
+sources but not credentials cannot redirect secrets elsewhere.
 
 **Market Research Agent.** Admin-triggered with a scope (roles, topics, time window). It runs web
 search and fetch, then extracts findings in which every claim cites at least one source URL with an
@@ -250,7 +274,7 @@ Each is integrated through configuration when provided. Status as of 2026-10-27:
 
 | # | Input | Status |
 |---|---|---|
-| 1 | Interview sources: URLs, auth types, credentials, confirmation that automated access is allowed | **Open** |
+| 1 | Interview sources: URLs, auth types, credentials, confirmation that automated access is allowed | **Open.** The platform side is ready (Phase 2): admins add sources and credentials in the console, never in chat or code. |
 | 2 | LLM provider key and budget | **Decided:** OpenRouter. The key goes in `IPP_OPENROUTER_API_KEY` (not yet set). Recommended: a dedicated key with a weekly budget set in OpenRouter as the hard cap. |
 | 3 | Web search API for market research | **Open** (OpenRouter's web-search plugin is a candidate, so no extra key would be needed) |
 | 4 | TTS provider | **Decided:** OpenRouter text-to-speech, same key. Voice is chosen in Phase 4. |
@@ -262,7 +286,14 @@ Each is integrated through configuration when provided. Status as of 2026-10-27:
 
 ## 12. Assumptions
 
-- Student self-registration is open (it can be switched to invite-only later).
+- Student self-registration stays open to anyone with the link until the project is complete
+  (product owner, 2026-10-27). NxtWave login is decided after testing.
+- Raw source records store the text extracted from a page or file. For uploads, the original file's
+  name, size and SHA-256 are kept, but not the file itself (media storage arrives in Phase 4).
+- robots.txt governs crawling (website pages, full-page feed reads). APIs and feeds are governed by
+  the provider's terms, which the admin confirms when adding the source.
+- Uploads are limited to 10 MB per file. Scanned PDFs without a text layer aren't supported yet (no
+  OCR).
 - Email verification is deferred until an email provider is configured. Accounts are active on registration.
 - One admin per person (no shared accounts). The first Super Admin is created from the CLI.
 - English-only UI for now.
@@ -279,8 +310,8 @@ Each is integrated through configuration when provided. Status as of 2026-10-27:
 |---|---|---|
 | 1 | Foundation, admin & student auth, RBAC, dashboards, student & admin management, audit log | **Done** (2026-10-27): 84 backend + 21 frontend tests, browser-verified desktop & mobile |
 | 1.1 | OpenRouter client, AI spend ledger, weekly spend page (Settings → AI usage), permanent logs | **Done** (2026-10-27): 108 backend + 28 frontend tests, browser-verified. Live OpenRouter check pending the key. |
-| 2 | Interview data sources, encrypted credentials, connectors, connection tests, imports | Next |
-| 3 | Job queue + worker, exploration & research agents, intelligence DB, review | |
+| 2 | Interview data sources, encrypted credentials, connectors, connection tests, imports, job queue + worker | **Done** (2026-10-27): 227 backend + 37 frontend tests, browser-verified (desktop and mobile) against real public sites with SSRF protection on |
+| 3 | Exploration & research agents, intelligence DB, review | Next |
 | 4 | Taxonomy, pilot content generation, learning pages, visualizations, Pyodide, videos, assessments | |
 | 5 | Quality checks, review/publish UI, individual & bulk generation, pilot gate | |
 | 6 | Progress tracking, attempts, analytics, role-readiness intelligence | |
@@ -300,7 +331,12 @@ Deployment tasks (Phase 7, or earlier if hosting moves forward):
 - Add `vercel.json` and a Render blueprint.
 - Trust the proxy's `X-Forwarded-For`, so per-IP rate limits see the student's IP rather than Vercel's.
 - Set `IPP_ENVIRONMENT=production` and `IPP_COOKIE_SECURE=true`.
-- Store secrets in each host's environment settings.
+- Store secrets in each host's environment settings. Set `IPP_CREDENTIALS_KEYS` to a production key,
+  not the development one, and keep a copy somewhere safe: without it, stored source credentials
+  must be entered again.
+- The job worker runs inside the API process (Render's free tier has no background workers). A job
+  interrupted by a restart is marked failed after 10 minutes without a heartbeat and can be
+  started again.
 
 Moving to the real domain later means pointing DNS and upgrading plans to remove the sleep; no code
 changes are needed.

@@ -9,11 +9,21 @@ import type {
   AiProviderStatus,
   AiUsageReport,
   AuditLogEntry,
+  AuthMethod,
   CohortWithCount,
+  ConnectorType,
+  FetchResult,
+  JobDetail,
+  JobSummary,
   Overview,
   Page,
   PermissionInfo,
   Role,
+  SourceCatalog,
+  SourceDetail,
+  SourceListItem,
+  SourceRecord,
+  SourceRecordDetail,
   StudentDetail,
   StudentListItem,
   StudentStatus,
@@ -230,5 +240,168 @@ export function useAiProviderStatus() {
     queryKey: adminKeys.aiProvider,
     queryFn: () => api<AiProviderStatus>('/admin/ai-usage/provider'),
     staleTime: 60_000,
+  })
+}
+
+// --- Interview data sources ------------------------------------------------------------------
+
+const LIVE_POLL_MS = 2000
+
+export function useSourceCatalog() {
+  return useQuery({
+    queryKey: adminKeys.sourceCatalog,
+    queryFn: () => api<SourceCatalog>('/admin/sources/catalog'),
+    staleTime: 5 * 60_000,
+  })
+}
+
+/** Polls while any listed source has a fetch queued or running. */
+export function useSources(includeRemoved: boolean) {
+  return useQuery({
+    queryKey: [...adminKeys.sources, 'list', includeRemoved],
+    queryFn: () =>
+      api<SourceListItem[]>(`/admin/sources${includeRemoved ? '?include_removed=true' : ''}`),
+    refetchInterval: (query) =>
+      query.state.data?.some((s) => s.active_job) ? LIVE_POLL_MS : false,
+  })
+}
+
+export function useSource(id: string) {
+  return useQuery({
+    queryKey: adminKeys.source(id),
+    queryFn: () => api<SourceDetail>(`/admin/sources/${id}`),
+    refetchInterval: (query) => (query.state.data?.active_job ? LIVE_POLL_MS : false),
+  })
+}
+
+export type SourceInput = {
+  name: string
+  description: string
+  connector_type?: ConnectorType
+  base_url: string | null
+  auth_method: AuthMethod
+  config: Record<string, unknown>
+  auth_config: Record<string, unknown>
+  enabled: boolean
+}
+
+function useSourceMutation<TVars, TResult>(
+  id: string | null,
+  mutationFn: (vars: TVars) => Promise<TResult>,
+) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn,
+    onSuccess: (result) => {
+      if (id && result && typeof result === 'object' && 'config' in result) {
+        queryClient.setQueryData(adminKeys.source(id), result)
+      }
+      queryClient.invalidateQueries({ queryKey: adminKeys.sources })
+      queryClient.invalidateQueries({ queryKey: adminKeys.audit })
+    },
+  })
+}
+
+export function useSaveSource(id: string | null) {
+  return useSourceMutation(id, (body: Partial<SourceInput>) =>
+    id
+      ? api<SourceDetail>(`/admin/sources/${id}`, { method: 'PATCH', body })
+      : api<SourceDetail>('/admin/sources', { method: 'POST', body }),
+  )
+}
+
+export function useRemoveSource(id: string) {
+  return useSourceMutation(id, () => api<void>(`/admin/sources/${id}`, { method: 'DELETE' }))
+}
+
+export function useSetCredentials(id: string) {
+  return useSourceMutation(id, (values: Record<string, string>) =>
+    api<SourceDetail>(`/admin/sources/${id}/credentials`, { method: 'PUT', body: { values } }),
+  )
+}
+
+export function useClearCredentials(id: string) {
+  return useSourceMutation(id, () =>
+    api<SourceDetail>(`/admin/sources/${id}/credentials`, { method: 'DELETE' }),
+  )
+}
+
+export function useTestSource(id: string) {
+  return useSourceMutation(id, () =>
+    api<SourceDetail>(`/admin/sources/${id}/test`, { method: 'POST' }),
+  )
+}
+
+export function useFetchSource(id: string) {
+  return useSourceMutation(id, () =>
+    api<JobSummary>(`/admin/sources/${id}/fetch`, { method: 'POST' }),
+  )
+}
+
+export function useFetchSources() {
+  return useSourceMutation(null, (sourceIds: string[]) =>
+    api<FetchResult>('/admin/sources/fetch', { method: 'POST', body: { source_ids: sourceIds } }),
+  )
+}
+
+export function useUploadToSource(id: string) {
+  return useSourceMutation(
+    id,
+    ({ file, idField, titleField }: { file: File; idField: string; titleField: string }) => {
+      const form = new FormData()
+      form.append('file', file)
+      form.append('id_field', idField)
+      form.append('title_field', titleField)
+      return api<JobSummary>(`/admin/sources/${id}/upload`, { method: 'POST', body: form })
+    },
+  )
+}
+
+export function useStopJob(sourceId: string) {
+  return useSourceMutation(sourceId, (jobId: string) =>
+    api<JobSummary>(`/admin/sources/${sourceId}/jobs/${jobId}/cancel`, { method: 'POST' }),
+  )
+}
+
+export function useSourceJobs(sourceId: string, page: number, live: boolean) {
+  return useQuery({
+    queryKey: [...adminKeys.sourceJobs(sourceId), page],
+    queryFn: () => api<Page<JobSummary>>(`/admin/sources/${sourceId}/jobs?page=${page}&page_size=8`),
+    placeholderData: keepPreviousData,
+    refetchInterval: live ? LIVE_POLL_MS : false,
+  })
+}
+
+export function useSourceJob(sourceId: string, jobId: string) {
+  return useQuery({
+    queryKey: [...adminKeys.sourceJobs(sourceId), 'detail', jobId],
+    queryFn: () => api<JobDetail>(`/admin/sources/${sourceId}/jobs/${jobId}`),
+    refetchInterval: (query) =>
+      query.state.data && ['queued', 'running'].includes(query.state.data.status)
+        ? LIVE_POLL_MS
+        : false,
+  })
+}
+
+export type RecordFilters = { q: string; jobId: string | null; page: number }
+
+export function useSourceRecords(sourceId: string, filters: RecordFilters, enabled: boolean) {
+  const params = new URLSearchParams({ page: String(filters.page), page_size: '10' })
+  if (filters.q.trim()) params.set('q', filters.q.trim())
+  if (filters.jobId) params.set('job_id', filters.jobId)
+  return useQuery({
+    queryKey: [...adminKeys.sourceRecords(sourceId), params.toString()],
+    queryFn: ({ signal }) =>
+      api<Page<SourceRecord>>(`/admin/sources/${sourceId}/records?${params}`, { signal }),
+    placeholderData: keepPreviousData,
+    enabled,
+  })
+}
+
+export function useSourceRecord(sourceId: string, recordId: number) {
+  return useQuery({
+    queryKey: [...adminKeys.sourceRecords(sourceId), 'detail', recordId],
+    queryFn: () => api<SourceRecordDetail>(`/admin/sources/${sourceId}/records/${recordId}`),
+    staleTime: Infinity, // records never change
   })
 }

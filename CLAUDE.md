@@ -31,9 +31,18 @@ AI/ML interview-preparation platform (admin console + student app).
 - Record privileged admin actions with `record_audit(...)`, and never put secrets in `details`.
 - Every AI call goes through `OpenRouterClient` (`app/ai/openrouter.py`) with a `feature` name, so its
   cost lands in `ai_usage_events`. Never call a model provider directly.
-- `audit_logs`, `login_events` and `ai_usage_events` are append-only (a DB trigger rejects UPDATE
-  and DELETE). Records are kept permanently, accounts are disabled and never deleted, and new
-  log or source-record tables get the same trigger.
+- `audit_logs`, `login_events`, `ai_usage_events`, `raw_source_records` and `job_events` are
+  append-only (a DB trigger rejects UPDATE and DELETE); `interview_sources` and `jobs` reject
+  DELETE. Records are kept permanently, accounts are disabled and never deleted, and new log or
+  source-record tables get the same trigger.
+- Every request to an admin-configured URL goes through `SafeHttp` (`app/sources/http.py`), which
+  provides SSRF blocking, origin-scoped credentials, size and time limits, retries and robots.txt.
+  Never call httpx directly for source traffic. A new kind of source is a connector class in
+  `CONNECTORS` with a strict settings model and `FieldSpec`s.
+- Source secrets are stored only through the vault (`app/core/vault.py`, `IPP_CREDENTIALS_KEYS`)
+  and are never returned, logged or audited. Audit entries name the fields, never the values.
+- Long-running work is a job (`app/jobs/runner.py`) that only an explicit admin action creates.
+  Handlers log through `JobContext` and raise `UserFacingError` for messages admins should see.
 - Schema changes: edit models → `uv run alembic revision --autogenerate -m "..."` → review the file.
   `tests/test_platform.py` fails if models and migrations drift.
 - Tests run against the `ipp_test` database (dropped and recreated per run). Run

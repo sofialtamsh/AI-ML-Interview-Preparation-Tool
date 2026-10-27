@@ -25,6 +25,11 @@ describe('admin navigation', () => {
     ])
   })
 
+  it('lists interview sources for admins who can view them', () => {
+    expect(labels(visibleFor(ADMIN_NAV, ['sources.view']))).toEqual(['Overview', 'Interview sources'])
+    expect(labels(visibleFor(ADMIN_NAV, ['intelligence.view']))).toEqual(['Overview'])
+  })
+
   it('opens system settings to admins who can only see AI spend', () => {
     expect(labels(visibleFor(ADMIN_NAV, ['ai_usage.view']))).toEqual(['Overview', 'System settings'])
     expect(labels(visibleFor(SETTINGS_TABS, ['ai_usage.view']))).toEqual(['AI usage'])

@@ -6,13 +6,12 @@ securely separated experiences: a **student** learning app and an **admin** cons
 - Product requirements: [docs/MASTER_PROMPT.md](docs/MASTER_PROMPT.md)
 - Architecture, data model, decisions and open inputs: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-**Status:** Phase 1 (foundation) and AI spend tracking are complete. See "What works today" below.
+**Status:** Phases 1 (foundation) and 2 (interview data sources), plus AI spend tracking, are complete. See "What works today" below.
 
 ## Stack
 
 FastAPI · SQLAlchemy 2 · Alembic · PostgreSQL 17 · React 19 · TypeScript · Vite · TanStack Query ·
-Tailwind CSS 4. Background jobs (Phase 3) will use a Postgres-backed queue, so there is no Redis
-dependency.
+Tailwind CSS 4. Background jobs use a Postgres-backed queue, so there is no Redis dependency.
 
 ## Prerequisites
 
@@ -36,6 +35,7 @@ docker compose up -d --wait postgres
 cd backend
 cp .env.example .env
 uv sync
+uv run python -m app.cli generate-credentials-key   # paste into IPP_CREDENTIALS_KEYS in .env
 uv run alembic upgrade head
 uv run python -m app.cli sync-rbac
 uv run python -m app.cli create-admin --email you@yourcompany.com --name "Your Name"   # prompts for a password
@@ -53,6 +53,10 @@ npm run dev
 - Password-reset emails are printed to the API console until an email provider is configured.
 - AI features use OpenRouter. Put the key in `backend/.env` as `IPP_OPENROUTER_API_KEY=...` and
   restart the API. Settings → AI usage then shows the key as connected.
+- Interview-source credentials are encrypted with `IPP_CREDENTIALS_KEYS`. Keep that key safe;
+  rotate it with `uv run python -m app.cli rotate-credentials` (see `app/cli.py`).
+- Background jobs (source fetches) run inside the API process. To run them separately, set
+  `IPP_EMBEDDED_WORKER=false` and start `uv run python -m app.cli run-worker`.
 
 ### Without Docker
 
@@ -75,7 +79,7 @@ The backend suite includes an authorization sweep. It calls **every** admin endp
 from the OpenAPI schema, with a student session and with no session, and expects 401. New admin
 endpoints are covered automatically.
 
-## What works today (Phase 1)
+## What works today (Phases 1–2)
 
 **Students**
 - Register and sign in.
@@ -97,13 +101,34 @@ endpoints are covered automatically.
   - a breakdown of each week by feature and by model;
   - the live OpenRouter key status: lifetime spend, spending cap, and remaining credit.
 
+**Interview sources** (admin, `sources.*` permissions)
+- Add, edit, turn off and remove sources:
+  - website pages;
+  - JSON APIs;
+  - RSS/Atom feeds;
+  - file imports.
+
+  A new URL is configuration, not code.
+- Credentials are encrypted and write-only. Six sign-in methods are supported, including a website
+  login form.
+- Test a connection, and fetch one or several sources in the background. A run shows live progress,
+  a log, and a Stop button.
+- Runs are incremental: unchanged items are skipped, and changed ones are stored as new revisions.
+- Import CSV, JSON, PDF, Word, text, Markdown or saved HTML files into any source.
+- Browse the raw records (`intelligence.view`).
+- Safety:
+  - private and internal addresses are blocked;
+  - robots.txt is honoured;
+  - CAPTCHAs and two-factor prompts are reported, never bypassed;
+  - credentials are only ever sent to the source's own site.
+
 **AI layer**
 - Every model call goes through `app/ai/openrouter.py` and is recorded with its cost in
   `ai_usage_events`, a permanent, append-only ledger.
 
 **Permanent records**
-- The database rejects any change to or deletion of the audit log, sign-in history and AI spend
-  ledger.
+- The database rejects any change to or deletion of the audit log, sign-in history, AI spend
+  ledger, raw source records and job logs. Sources and runs can't be deleted either.
 
 **Security**
 - Separate admin and student identities and sessions, with path-scoped httpOnly cookies.

@@ -14,6 +14,11 @@ export const adminKeys = {
   audit: ['admin', 'audit'] as const,
   aiUsage: ['admin', 'ai-usage'] as const,
   aiProvider: ['admin', 'ai-provider'] as const,
+  sourceCatalog: ['admin', 'source-catalog'] as const,
+  sources: ['admin', 'sources'] as const,
+  source: (id: string) => ['admin', 'sources', id] as const,
+  sourceJobs: (id: string) => ['admin', 'sources', id, 'jobs'] as const,
+  sourceRecords: (id: string) => ['admin', 'sources', id, 'records'] as const,
 }
 
 export const studentKeys = {

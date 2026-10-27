@@ -1,10 +1,16 @@
 import os
 
+from cryptography.fernet import Fernet
+
 # Configure before any app module reads settings. Tests always use a dedicated *_test database
 # (its schema is dropped on every run), never the URL from backend/.env.
 os.environ["IPP_ENVIRONMENT"] = "test"
 os.environ["IPP_COOKIE_SECURE"] = "false"
 os.environ["IPP_OPENROUTER_API_KEY"] = ""  # tests never reach the real provider
+os.environ["IPP_EMBEDDED_WORKER"] = "false"  # tests run queued jobs explicitly
+os.environ["IPP_SOURCES_ALLOW_PRIVATE_NETWORKS"] = "false"
+# A throwaway credential key, generated per test run.
+os.environ["IPP_CREDENTIALS_KEYS"] = Fernet.generate_key().decode()
 os.environ["IPP_DATABASE_URL"] = os.environ.get(
     "IPP_TEST_DATABASE_URL", "postgresql+psycopg://ipp:ipp@localhost:55432/ipp_test"
 )

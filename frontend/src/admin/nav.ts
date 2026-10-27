@@ -1,4 +1,4 @@
-import { GraduationCap, LayoutDashboard, Settings, type LucideIcon } from 'lucide-react'
+import { Database, GraduationCap, LayoutDashboard, Settings, type LucideIcon } from 'lucide-react'
 
 export type NavItem = {
   to: string
@@ -10,10 +10,11 @@ export type NavItem = {
 }
 
 // Only modules that work today are listed. Each later phase adds its own entry
-// (Interview Data Sources, agents, intelligence, taxonomy, studio, review, analytics, ...).
+// (agents, intelligence, taxonomy, studio, review, analytics, ...).
 export const ADMIN_NAV: NavItem[] = [
   { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
   { to: '/admin/students', label: 'Students', icon: GraduationCap, anyOf: ['students.view'] },
+  { to: '/admin/sources', label: 'Interview sources', icon: Database, anyOf: ['sources.view'] },
   {
     to: '/admin/settings',
     label: 'System settings',

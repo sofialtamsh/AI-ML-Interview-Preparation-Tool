@@ -17,6 +17,15 @@ const ACTION_LABELS: Record<string, string> = {
   'role.created': 'Created a role',
   'role.updated': 'Updated a role',
   'role.deleted': 'Deleted a role',
+  'source.created': 'Added an interview source',
+  'source.updated': 'Edited an interview source',
+  'source.removed': 'Removed an interview source',
+  'source.credentials_set': 'Set source credentials',
+  'source.credentials_cleared': 'Deleted source credentials',
+  'source.connection_tested': 'Tested a source connection',
+  'source.fetch_started': 'Started a source fetch',
+  'source.fetch_stopped': 'Stopped a source fetch',
+  'source.file_imported': 'Imported a file into a source',
 }
 
 const FILTERS = [
@@ -25,6 +34,7 @@ const FILTERS = [
   { value: 'cohort.', label: 'Cohorts' },
   { value: 'admin_user.', label: 'Admins' },
   { value: 'role.', label: 'Roles' },
+  { value: 'source.', label: 'Interview sources' },
 ]
 
 function show(value: unknown): string {
@@ -59,7 +69,7 @@ export default function AuditTab() {
           <h2 className="font-display text-base font-semibold text-slate-900">Audit log</h2>
           <p className="text-sm text-slate-500">Every privileged admin action, newest first.</p>
         </div>
-        <div className="w-44">
+        <div className="w-52">
           <SelectField
             label="Filter activity"
             hideLabel

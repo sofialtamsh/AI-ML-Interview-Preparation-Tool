@@ -30,7 +30,7 @@ class ConnectorType(StrEnum):
 class AuthMethod(StrEnum):
     NONE = "none"
     HTTP_BASIC = "http_basic"
-    BEARER_TOKEN = "bearer_token"
+    BEARER_TOKEN = "bearer_token"  # noqa: S105 (a method name, not a secret)
     API_KEY_HEADER = "api_key_header"
     API_KEY_QUERY = "api_key_query"
     FORM_LOGIN = "form_login"
@@ -53,9 +53,7 @@ class InterviewSource(UUIDPrimaryKey, Timestamps, Base):
     name: Mapped[str] = mapped_column(String(120))
     description: Mapped[str] = mapped_column(Text, default="")
     base_url: Mapped[str | None] = mapped_column(String(2048))
-    connector_type: Mapped[ConnectorType] = mapped_column(
-        str_enum(ConnectorType, "connector_type")
-    )
+    connector_type: Mapped[ConnectorType] = mapped_column(str_enum(ConnectorType, "connector_type"))
     auth_method: Mapped[AuthMethod] = mapped_column(
         str_enum(AuthMethod, "auth_method"), default=AuthMethod.NONE
     )

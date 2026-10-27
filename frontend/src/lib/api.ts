@@ -54,6 +54,8 @@ export async function api<T>(
   path: string,
   options: { method?: string; body?: unknown; signal?: AbortSignal } = {},
 ): Promise<T> {
+  // FormData (file uploads) is sent as multipart; the browser sets its Content-Type.
+  const isForm = options.body instanceof FormData
   let response: Response
   try {
     response = await fetch(`/api${path}`, {
@@ -62,9 +64,14 @@ export async function api<T>(
       headers: {
         // Required by the API on state-changing requests (CSRF defence).
         'X-Requested-With': 'ipp-web',
-        ...(options.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        ...(options.body !== undefined && !isForm ? { 'Content-Type': 'application/json' } : {}),
       },
-      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      body:
+        options.body === undefined
+          ? undefined
+          : isForm
+            ? (options.body as FormData)
+            : JSON.stringify(options.body),
       signal: options.signal,
     })
   } catch (error) {

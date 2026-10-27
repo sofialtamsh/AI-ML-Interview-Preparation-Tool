@@ -12,9 +12,10 @@ import json
 from cryptography.fernet import Fernet, InvalidToken, MultiFernet
 
 from app.core.config import get_settings
+from app.core.errors import UserFacingError
 
 
-class VaultError(RuntimeError):
+class VaultError(UserFacingError):
     pass
 
 

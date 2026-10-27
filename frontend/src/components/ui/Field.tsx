@@ -5,6 +5,7 @@ import {
   type InputHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
 } from 'react'
 
 import { cn } from '../../lib/cn'
@@ -99,6 +100,28 @@ export function PasswordField({
           {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
         </button>
       </div>
+    </FieldShell>
+  )
+}
+
+type TextAreaFieldProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  label: string
+  hint?: ReactNode
+  error?: string
+}
+
+export function TextAreaField({ label, hint, error, className, ...props }: TextAreaFieldProps) {
+  const id = useId()
+  return (
+    <FieldShell id={id} label={label} hint={hint} error={error}>
+      <textarea
+        id={id}
+        rows={3}
+        className={cn(CONTROL, 'resize-y', error && 'ring-rose-400', className)}
+        aria-invalid={!!error || undefined}
+        aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
+        {...props}
+      />
     </FieldShell>
   )
 }
