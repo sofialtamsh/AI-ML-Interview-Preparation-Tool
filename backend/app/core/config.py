@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 from functools import lru_cache
 from typing import Literal
 from zoneinfo import ZoneInfo
@@ -38,6 +39,25 @@ class Settings(BaseSettings):
     # AI spend is reported in weeks that start on this date's weekday, in this timezone.
     usage_tracking_start: date = date(2026, 10, 27)
     usage_timezone: str = "Asia/Kolkata"
+
+    # Models are configuration, chosen per task (any OpenRouter model id that supports
+    # structured outputs). Extraction runs once per record, so it defaults to a cheap model.
+    model_extraction: str = "anthropic/claude-haiku-5.5"
+    model_research: str = "google/gemini-3.8-flash"
+    # Learning content is written once per topic and read by every student, so it uses a
+    # stronger model. Narration uses OpenRouter text-to-speech.
+    model_content: str = "anthropic/claude-sonnet-5.5"
+    model_narration: str = "microsoft/mai-voice-2.1-flash"
+    narration_voices: list[str] = [
+        "en-IN-Priya:MAI-Voice-2.1-Flash",
+        "en-IN-Dhruv:MAI-Voice-2.1-Flash",
+    ]
+    # OpenRouter's web search backend for the Market Research Agent. Exa returns page
+    # excerpts, so quoted evidence can be checked against what the source says.
+    research_search_engine: Literal["exa", "parallel", "perplexity", "firecrawl", "native"] = "exa"
+    # Ceilings for any single agent run, whatever limit an admin enters.
+    agent_max_records_per_run: int = 500
+    agent_max_cost_per_run_usd: Decimal = Decimal("10")
 
     # Interview-source credentials are encrypted with these Fernet keys (comma-separated, newest
     # first). Rotate by prepending a new key and running `python -m app.cli rotate-credentials`.

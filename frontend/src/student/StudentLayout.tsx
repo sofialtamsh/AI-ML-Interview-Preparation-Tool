@@ -1,4 +1,4 @@
-import { LayoutDashboard, LogOut, UserRound } from 'lucide-react'
+import { Compass, LayoutDashboard, LogOut, UserRound } from 'lucide-react'
 import { Suspense } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router'
 
@@ -9,9 +9,10 @@ import { cn } from '../lib/cn'
 import { initials } from '../lib/format'
 import { useCurrentStudent, useStudentLogout } from './api'
 
-// Only sections that work today are listed; learning sections join as they ship.
+// Only sections that work today are listed.
 const NAV = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/app/learn', label: 'Explore', icon: Compass, end: false },
   { to: '/app/profile', label: 'My profile', icon: UserRound, end: false },
 ]
 
@@ -84,7 +85,7 @@ export function StudentLayout() {
 
       <nav
         aria-label="Main"
-        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-2 border-t border-slate-200 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-t border-slate-200 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl sm:hidden"
       >
         {NAV.map((item) => (
           <NavLink

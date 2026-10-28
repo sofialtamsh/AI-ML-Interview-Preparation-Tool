@@ -67,6 +67,7 @@ class JobSummary(ApiModel):
     started_at: datetime | None
     finished_at: datetime | None
     progress_done: int
+    progress_total: int | None
     result: dict[str, Any]
     error: str | None
     cancel_requested: bool
@@ -84,6 +85,7 @@ class JobSummary(ApiModel):
             started_at=job.started_at,
             finished_at=job.finished_at,
             progress_done=job.progress_done,
+            progress_total=job.progress_total,
             result=job.result,
             error=job.error,
             cancel_requested=job.cancel_requested,

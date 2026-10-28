@@ -14,6 +14,10 @@ from app.models.base import Base, UUIDPrimaryKey, str_enum
 class JobKind(StrEnum):
     SOURCE_FETCH = "source_fetch"
     SOURCE_IMPORT = "source_import"
+    EXPLORATION = "exploration"
+    MARKET_RESEARCH = "market_research"
+    CONTENT_GENERATION = "content_generation"
+    CONTENT_NARRATION = "content_narration"
 
 
 class JobStatus(StrEnum):
@@ -33,13 +37,15 @@ class Job(UUIDPrimaryKey, Base):
 
     __tablename__ = "jobs"
     __table_args__ = (
-        # One fetch at a time per source, enforced by the database rather than by a race-prone
-        # check in application code.
+        # One fetch or exploration at a time per source, enforced by the database rather than
+        # by a race-prone check in application code.
         Index(
-            "uq_jobs_one_active_fetch_per_source",
+            "uq_jobs_one_active_run_per_source",
             "source_id",
             unique=True,
-            postgresql_where=text("kind = 'source_fetch' AND status IN ('queued', 'running')"),
+            postgresql_where=text(
+                "kind IN ('source_fetch', 'exploration') AND status IN ('queued', 'running')"
+            ),
         ),
     )
 
@@ -50,6 +56,9 @@ class Job(UUIDPrimaryKey, Base):
     source_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("interview_sources.id"), index=True
     )
+    # Content jobs: the topic they work on, and the bulk batch they belong to.
+    topic_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("topics.id"), index=True)
+    batch_id: Mapped[uuid.UUID | None] = mapped_column(index=True)
     payload: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     # Counters the handler reports (records seen / new / updated / unchanged, errors).
     result: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)

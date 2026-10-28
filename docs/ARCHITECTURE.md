@@ -19,10 +19,10 @@ Docker. Another project on the same machine already uses ports 5432/5433/8000/63
 | Background jobs | **Postgres-backed job queue** (`jobs` table, `FOR UPDATE SKIP LOCKED`) + a worker (implemented in Phase 2, `app/jobs/runner.py`) | Agent and generation jobs are low-volume and long-running, and they need durable status, progress, history and retry, which means a table anyway. This avoids running Redis/Celery for no extra value. The worker runs as a thread inside the API by default (`IPP_EMBEDDED_WORKER`), or as its own process (`python -m app.cli run-worker`). Swap in a broker only if throughput ever requires it. |
 | Frontend | **React + TypeScript + Vite**, React Router, TanStack Query, Tailwind CSS v4 | A SPA fits a cookie-authenticated API on the same origin. TanStack Query handles caching and deduplication, which avoids redundant API calls. Tailwind provides a consistent design system with small CSS output. Admin and student code are lazily loaded, separate chunks. |
 | Visualizations | Hand-built SVG/Canvas React components (D3 helpers where useful) | Interactive, parameter-driven playgrounds such as gradient descent, K-Means and attention. Static images are not acceptable. |
-| Code playground | **Pyodide (CPython in WebAssembly) in a Web Worker** in the student's browser | Student code never runs on our servers, which satisfies the isolation requirement at zero server cost. Generated reference code is verified server-side in a network-less, resource-limited container (Phase 4/5). |
+| Code playground | **Pyodide (CPython in WebAssembly) in a Web Worker** in the student's browser (implemented in Phase 4, `frontend/src/lib/pyodide.ts`) | Student code never runs on our servers, which satisfies the isolation requirement at zero server cost. Each run gets a fresh namespace and a 30-second limit (the worker is terminated). Lab code is checked before publishing by running it the same way in a reviewer's browser; the server compares the output with the expected output and records the check (see §8). |
 | AI layer | **OpenRouter** through one client (`app/ai/openrouter.py`) + per-task model routing + usage ledger | One key reaches many vendors' models, so each task can use a different model (cheap ones for classification, stronger ones for generation and evaluation). Models are configuration, not code. Every call records its USD cost in `ai_usage_events` (implemented 2026-10-27). |
-| Video | Script → scene plan → visuals → TTS → assembly, behind provider interfaces | Narration uses OpenRouter's text-to-speech endpoint (`POST /audio/speech`) with the same key and the same cost ledger. |
-| Media storage | Storage interface: local filesystem in dev, S3-compatible bucket in prod | No extra infrastructure until media exists. |
+| Video | A scene player, not rendered video files (Phase 4) | Each scene is an animated SVG figure, a big caption and narration. Narration is OpenRouter text-to-speech (`POST /audio/speech`, same key, same cost ledger), one clip per scene. Without recorded audio, students get captions, auto-advance and an optional device voice. |
+| Media storage | Narration clips in Postgres (`media_assets`, at most 3 MB per clip) for the pilot | Kept with the version they belong to and served only through permission-checked endpoints. Move to an S3-compatible bucket (§14) when media volume grows. |
 
 ## 3. System overview
 
@@ -81,31 +81,51 @@ log references stay valid.
   text, content hash, published at, meta). A changed document is stored as a new revision, never
   overwritten; unchanged content is skipped. This makes fetching incremental and auditable.
 
-**Intelligence (Phase 3)**
-- `interview_experiences` → `interview_questions` (actual questions): company, role, round,
-  date or period, original text, technologies, difficulty, topic, extraction confidence,
-  verification status, `duplicate_of`, provenance FKs to source, raw record and job.
-- `question_clusters`: groups near-duplicate questions. Frequency is always *computed* as the count
-  of distinct verified records and is never stored as a free-form claim.
-- `research_reports` → `research_findings` → `research_sources` (URL, publisher, access date).
-- `curriculum_recommendations` (pending / approved / rejected / deferred, decided by and at).
-  Recommendations stay separate from curriculum decisions.
+**Taxonomy (Phase 3, implemented 2026-10-27)**
+- `domains` and `topics` (`parent_id` makes a subtopic; global slugs such as
+  `machine-learning/regression`; `is_pilot`; archived, never deleted). The starting set is the
+  requirements' §9 list, seeded once by `python -m app.cli seed-taxonomy`.
 
-**Taxonomy & content (Phases 4–5)**
-- `domains`, `topics` (self-referencing `parent_id` → topic/subtopic), `job_roles`,
-  `topic_role_relevance`, with an `is_pilot` flag on topics.
-- `content_items` (one per topic × component: concept, examples, python, interview Q&A, revision,
-  assessment, visualization spec, video script, video) pointing at `published_version_id`.
-- `content_versions` (immutable body JSONB, version number, lifecycle status
-  draft → under_review → approved → published → archived/rejected, generated_by, model, job,
-  reviewer, notes, quality report).
-- `content_intelligence_links`: content version ↔ interview questions / research findings it used.
-- `practice_questions`: what students see. `origin` ∈ {actual_interview, ai_generated,
-  research_derived, admin_created}, with a CHECK that `actual_interview` ⇔ FK to an
-  `interview_questions` row. **This table has no company column.** Student APIs only ever read
-  this table, so company names are structurally unreachable from student endpoints.
-- `quality_checks`, `generation_batches`, `media_assets`, `platform_settings`. `ai_usage_events`
-  gains job/topic/batch links when jobs exist.
+**Intelligence (Phase 3, implemented 2026-10-27)**
+- `record_extractions` (append-only): one row per attempt to read a record. A record with an
+  `extracted` or `not_interview` attempt is never sent to the model again.
+- `interview_experiences` → `interview_questions` (actual questions): company, role, round, exact
+  date or period, location, verbatim `original_text` (never edited), question type, difficulty,
+  topic, `grounded` (found word-for-word in the record), review status, `duplicate_of`, and
+  provenance links to source, raw record and job.
+- Duplicates form clusters through `duplicate_of` (exact normalised text, then ≥ 0.9
+  similarity). Frequency is always *computed* as the distinct approved records in a cluster;
+  it is never stored.
+- `research_reports` → `research_sources` (URL, title, site, excerpt, access time) and
+  `research_findings` → `finding_evidence` (source, quote, `quote_verified`). All append-only.
+- `curriculum_recommendations` (pending / approved / rejected / deferred, decided by and at, and
+  the topic an approved "add topic" created) and `research_questions` (research-derived
+  practice questions, kept apart from actual interview questions).
+- `ai_usage_events.job_id` ties every AI call to the run that made it, so each run shows its cost.
+
+**Learning content (Phase 4, implemented 2026-10-27, migration 0005)**
+- `content_items`: one per topic × component (lesson, playground, video, python, interview, quiz,
+  revision), pointing at `published_version_id`. Never deleted.
+- `content_versions`: number, body (JSONB in canonical form, validated by the component's schema in
+  `app/content/schemas.py`), lifecycle status, origin (`starter`, `ai_generated`, `edited`), the
+  version it was based on, model, job, author, reviewer, review note, published time. A trigger
+  makes the body immutable and rejects deletes: an edit or a restore is always a new version.
+- `code_checks` (append-only): a run of a Python lab's exact program (SHA-256 of its code), its
+  output, error, runtime and duration. The server decides `passed`.
+- `media_assets`: narration audio per scene of a video version. Never deleted.
+- `platform_settings`: key/value decisions, starting with `content_expansion_approved`.
+- `jobs` gained `topic_id` and `batch_id`, so generation runs and their AI cost belong to a topic.
+- Interview questions inside content carry `origin` ∈ {ai_generated, admin_created,
+  actual_interview, research_derived} and a `source_ref`. The schema requires a `source_ref` for
+  actual and research-derived questions, and the generator replaces their wording with the approved
+  record's exact text (or drops an unknown reference). **Content bodies have no company field.**
+  Students read content only through `app/api/student/learn.py`, which serves published versions
+  through student schemas (`app/schemas/learn.py`): `origin` and `source_ref` become a label
+  ("Practice question", "Asked in real interviews", "In demand right now") and the role, never a
+  company or source. (This replaces the separate `practice_questions` table first planned here.)
+
+**Later (Phases 5–6):** `job_roles`, `topic_role_relevance`, content ↔ intelligence links,
+automated quality-check reports.
 
 **Learning & performance (Phase 6)**
 - `learning_events` (append-only: topic viewed, section completed, video progress, exercise done,
@@ -175,19 +195,25 @@ query itself, so there is no endpoint that takes another student's ID.
 
 ## 7. AI agents
 
-**Interview Exploration Agent.** It runs only on an explicit admin trigger
-(`agents.run`); nothing in a login or page view can enqueue it.
-1. The admin selects one or more enabled sources, which creates one job per source.
-2. The worker claims the job, loads the connector by type, and decrypts credentials in memory only.
-3. `test_connection()`, then incremental listing from the stored cursor. Unchanged
-   records (same content hash) are skipped.
-4. Raw records are stored. LLM extraction produces structured output validated against a Pydantic
-   schema (invalid output is retried, then recorded as a partial failure).
-5. Normalisation and taxonomy classification run on a cheap model. Duplicate detection runs exact
-   hash first, then semantic similarity.
-6. The output is an **extraction report**. Records land as `pending_review`, and an admin with
-   `intelligence.review` approves, rejects or merges them. Only approved records count in the
-   intelligence engine.
+**Interview Exploration Agent (implemented in Phase 3, `app/agents/exploration.py`).** It runs only
+on an explicit admin trigger (`agents.run`); nothing in a login or page view can enqueue it.
+1. The admin selects sources and limits (records and USD per source). This creates one job per
+   source. At most one fetch or exploration runs per source at a time, enforced by the database.
+2. Optionally, the job first fetches new records (reusing the Phase 2 fetch).
+3. It reads the latest revision of every record not yet read, one structured-output call per
+   record (`IPP_MODEL_EXTRACTION`, strict JSON schema). An invalid reply gets one repair
+   attempt; after that the record is marked failed and retried next run. A rejected key or no
+   credit stops the run.
+4. Safeguards are enforced in code, not only in the prompt:
+   - questions must be found (near) word-for-word in the record, or they are flagged;
+   - a company not written in the record is dropped;
+   - an exact date needs its day, month and year in the record;
+   - topics must be existing slugs;
+   - the record is fenced as untrusted data.
+5. Duplicate detection: exact normalised text, then string similarity within the topic.
+6. Everything lands as `pending_review`. Reviewers (`intelligence.review`) approve, reject, re-topic,
+   merge duplicates and correct interview details, all audited. Only approved questions count.
+7. The run stops at its spending limit (checked before every call) and reports what is left.
 
 **Source connectors (implemented in Phase 2, `app/sources/`).** Each connector is a class in
 `CONNECTORS` with a strict Pydantic settings model and form descriptions (`FieldSpec`) that the
@@ -212,56 +238,98 @@ website login form (hidden CSRF fields are carried over). All outbound requests 
 Changing a source's site (or login page) clears its stored credentials, so an admin who may edit
 sources but not credentials cannot redirect secrets elsewhere.
 
-**Market Research Agent.** Admin-triggered with a scope (roles, topics, time window). It runs web
-search and fetch, then extracts findings in which every claim cites at least one source URL with an
-access date (uncited claims are dropped). It produces a structured report plus
-**curriculum recommendations in `pending` status**. Approving a recommendation (`taxonomy.manage`)
-may add or modify taxonomy entries. It never starts generation; that is always a separate,
-deliberate Studio action.
+**Market Research Agent (implemented in Phase 3, `app/agents/research.py`).** It is
+admin-triggered with a scope: roles, an optional focus, a region, a time window, sources per
+search and a spending limit.
+1. It runs one OpenRouter web search per role (`plugins: [{id: "web", engine}]`,
+   `IPP_RESEARCH_SEARCH_ENGINE`, default Exa), and collects the cited URLs with their excerpts.
+2. A structuring call (`IPP_MODEL_RESEARCH`, strict schema) turns the numbered sources into
+   findings, recommendations and practice questions.
+3. These are kept only when backed:
+   - a finding must cite a retrieved source;
+   - quotes are checked against the excerpt (`quote_verified`);
+   - recommendations and questions must rest on kept findings;
+   - "add topic" needs a real domain and a new name.
+4. Recommendations wait as `pending`. Approving one (`taxonomy.manage`) records the decision.
+   For "add topic" it creates a non-pilot topic. It never generates content.
 
-**Intelligence engine.** Read-side queries and aggregations over approved interview questions,
-clusters and research findings: frequency by topic, role and period (counted from evidence), trend
-direction combining history *and* current research, and coverage gaps against published content.
+**Intelligence engine (implemented).** For each topic, the console shows approved interview
+evidence (questions, distinct records, roles) beside the latest research trend. A transparent label
+says which kinds of evidence point at the topic (asked & rising, rising in market, asked, declining,
+no evidence); there is no opaque score, and frequency is never inferred from unapproved data.
+Coverage gaps against published content arrive with Phase 5.
 
 ## 8. Content generation & approval
 
-Studio: choose domain → topics/subtopics → components → supporting intelligence → see a cost
-estimate → start. This creates a batch with **one job per topic**, subject to configurable batch size
-and budget limits. Each component is generated into a new `draft` version. Automated quality checks
-then run: schema validity, sandboxed code execution, answer-key consistency (an evaluator model
-re-solves the questions), duplicate detection, link checks, difficulty classification, and video
-script length. Passing versions move to `under_review`.
+Implemented in Phase 4 (`app/content/`, `app/api/admin/content.py`, console: Content studio).
 
-A reviewer can edit, regenerate one component, compare versions, approve, or reject. Publishing
-requires `content.publish`. Nothing in a batch publishes automatically. Students can only read
-published versions of published topics.
+**Generation.** An admin with `content.generate` picks topics, components, whether to use approved
+intelligence, and a spending limit per topic. This creates a batch with **one job per topic**
+(`IPP_MODEL_CONTENT`, strict JSON schema per component). Each component becomes a new `draft`
+version; a component that fails is reported in the run log and the rest continue. The run stops at
+its spending limit. The playground is only generated for topics that have an interactive widget.
+Intelligence is passed as approved actual questions (with role and round), approved
+research-derived questions and cited findings, never a company.
+
+**Narration.** `content.generate` can narrate a video version with one of the configured voices
+(`IPP_NARRATION_VOICES`). One clip per scene is stored with that version, with its cost in the ledger.
+
+**Review lifecycle.** draft → under_review → approved → published, plus send back, reject,
+unpublish and archive. Each step needs a specific permission (submit: generate or review; send
+back and reject: review; approve, publish, unpublish and archive: publish). Every step is audited.
+Publishing a version archives the previously published one. Bulk submit, approve and publish
+per topic report what they skipped and why. Reviewers can preview exactly what students will see,
+edit the JSON (validated by the server, saved as a new draft), compare any two versions line by
+line, and restore an older version as a new draft.
+
+**Code gate.** A Python lab can only be published after a passing code check of its exact
+program. The reviewer's browser runs it in Pyodide; the server compares the output with the
+lab's expected output and records the check.
+
+**Students** read only published versions, and a topic appears once its lesson is published.
 
 **Pilot gate:** until an admin with `settings.manage` records the explicit "expansion approved"
-decision (`platform_settings`), the Studio refuses to generate for topics not flagged `is_pilot`.
-This enforces requirement 12 in code, not only in process.
+decision (`platform_settings`), generation is refused for topics not flagged `is_pilot`, both
+when a run is requested and again when the job starts. Changing which topics are pilot topics
+also needs `settings.manage`. This enforces requirement 12 in code, not only in process.
+
+**Not yet (Phase 5):** automated quality checks beyond schema validation and the code gate
+(an evaluator model re-solving quiz answers, duplicate and difficulty checks, video script
+timing), a server-side code sandbox for generated labs, coverage gaps against intelligence, and
+the reviewer rubric.
 
 ## 9. User journeys (initial)
 
-- **Student:** register → land on dashboard → profile/sessions (Phase 1). Later phases add
-  explore domains → open topic → intuition → video → visualization → Python → interview questions →
-  revision → assessment, with progress saved on every step and a "continue where I left off" card.
+- **Student:** register → dashboard → profile/sessions (Phase 1). Phase 4 adds Explore → topic →
+  Learn (swipeable cards with animated figures) → Play (interactive playground with "try this"
+  tasks) → Watch (narrated scenes) → Code (run real Python in the browser) → Interview → Quiz →
+  Revise. Phase 6 adds saved progress, quiz attempts and a "continue where I left off" card.
 - **Admin:** log in → overview → manage students and cohorts → manage admins and roles → audit log
   (Phase 1). Later phases add configuring a source and credentials → test connection → run
   exploration → review extraction; run research → approve recommendations; Studio → review →
   publish; analytics → role rankings → student report.
 
-## 10. Initial pilot content (proposal, to confirm before Phase 4)
+## 10. Pilot content (confirmed 2026-10-27)
 
-The spec asks for the selection to be informed by interview intelligence and research, which do not
-exist yet. This is a **provisional** batch, chosen for interview frequency in common AI/ML roles and
-for strong interactive visualizations. It will be re-checked against Phase 3 output before any
-generation runs.
+The product owner chose two domains with three subtopics each (2026-10-27). Each has all seven
+components and its own playground:
 
-| Domain | Subtopics | Signature visualization |
+| Domain | Subtopic | Playground |
 |---|---|---|
-| Machine Learning | Linear Regression · Logistic Regression · K-Means Clustering | Draggable points + fitted line; sigmoid/decision boundary; clusters forming step by step |
-| Deep Learning | Gradient Descent · Activation Functions · Neural Network Fundamentals (forward/backprop) | Loss-surface playground (learning rate, momentum); function/derivative explorer; live forward pass |
-| Generative AI & LLMs | Tokenization & Embeddings · Attention & Transformers · RAG | Tokenizer playground + embedding space; attention heat-map; retrieval → context → answer pipeline |
+| Machine Learning | Supervised Learning | k-NN classifier: add points, change k, drag a query star, train vs test accuracy |
+| Machine Learning | Unsupervised Learning | k-means step by step, new starts, elbow chart |
+| Machine Learning | Regression | Fit a line by hand vs least squares, residuals and squared errors, MSE and R² |
+| Deep Learning | Neural Network Fundamentals | Train a small network on XOR, circle or blobs; watch weights, loss and decision map |
+| Deep Learning | Activation Functions | Five functions with slopes, and how gradients shrink across layers |
+| Deep Learning | Optimizers | GD, Momentum and Adam on a stretched loss bowl, step counts compared |
+
+**Starter content.** No AI key or interview records were available yet, so the development
+assistant (Claude Opus 5.5) wrote starter drafts for all 42 components (`app/content/starter/`).
+They are imported as `starter` drafts by `python -m app.cli seed-pilot-content`, labelled as such,
+and go through the same review and publishing as any AI draft. Every lab's expected output was
+produced by running it. Their interview questions are practice questions (`ai_generated`); none
+claims to come from a real interview. `seed-pilot-content --refresh` adds a new draft when the
+starter content changes later.
 
 Pilot evaluation before scaling: automated checks (above) plus a reviewer rubric scored 1–5 per topic
 on technical correctness, clarity, interview relevance, visualization, code, video, assessment and
@@ -276,8 +344,8 @@ Each is integrated through configuration when provided. Status as of 2026-10-27:
 |---|---|---|
 | 1 | Interview sources: URLs, auth types, credentials, confirmation that automated access is allowed | **Open.** The platform side is ready (Phase 2): admins add sources and credentials in the console, never in chat or code. |
 | 2 | LLM provider key and budget | **Decided:** OpenRouter. The key goes in `IPP_OPENROUTER_API_KEY` (not yet set). Recommended: a dedicated key with a weekly budget set in OpenRouter as the hard cap. |
-| 3 | Web search API for market research | **Open** (OpenRouter's web-search plugin is a candidate, so no extra key would be needed) |
-| 4 | TTS provider | **Decided:** OpenRouter text-to-speech, same key. Voice is chosen in Phase 4. |
+| 3 | Web search API for market research | **Default chosen:** OpenRouter web search (Exa engine) on the same key, about $0.007 per search. Change with `IPP_RESEARCH_SEARCH_ENGINE`. |
+| 4 | TTS provider | **Decided:** OpenRouter text-to-speech (`microsoft/mai-voice-2.1-flash`), same key. Voices: `en-IN-Priya` and `en-IN-Dhruv`; the reviewer picks one per narration (`IPP_NARRATION_VOICES`). |
 | 5 | Email delivery for password resets | **Open.** Dev prints links to the API console. |
 | 6 | Hosting | **Proposed** in §14, awaiting confirmation |
 | 7 | Student onboarding | **Deferred (2026-10-27):** while the platform is being built and tested, students register with email + password (already implemented). NxtWave login is decided after testing, before real students join. The options are NxtWave's own login (needs SSO/OAuth from NxtWave's tech team) or our own password linked to a NxtWave ID (optionally checked against an admin-uploaded roster). Either is an additive change. |
@@ -297,6 +365,8 @@ Each is integrated through configuration when provided. Status as of 2026-10-27:
 - Email verification is deferred until an email provider is configured. Accounts are active on registration.
 - One admin per person (no shared accounts). The first Super Admin is created from the CLI.
 - English-only UI for now.
+- Until Phase 6, quiz answers, playground tasks and code edits live only in the open page; nothing
+  about a student's learning is saved yet, and the student app doesn't claim it is.
 - Navigation only shows modules that actually work. Items are added as each phase ships, with no
   placeholder screens.
 - AI spend weeks run Tuesday → Monday in India Standard Time, starting 2026-10-27 (the day the
@@ -311,9 +381,9 @@ Each is integrated through configuration when provided. Status as of 2026-10-27:
 | 1 | Foundation, admin & student auth, RBAC, dashboards, student & admin management, audit log | **Done** (2026-10-27): 84 backend + 21 frontend tests, browser-verified desktop & mobile |
 | 1.1 | OpenRouter client, AI spend ledger, weekly spend page (Settings → AI usage), permanent logs | **Done** (2026-10-27): 108 backend + 28 frontend tests, browser-verified. Live OpenRouter check pending the key. |
 | 2 | Interview data sources, encrypted credentials, connectors, connection tests, imports, job queue + worker | **Done** (2026-10-27): 227 backend + 37 frontend tests, browser-verified (desktop and mobile) against real public sites with SSRF protection on |
-| 3 | Exploration & research agents, intelligence DB, review | Next |
-| 4 | Taxonomy, pilot content generation, learning pages, visualizations, Pyodide, videos, assessments | |
-| 5 | Quality checks, review/publish UI, individual & bulk generation, pilot gate | |
+| 3 | Exploration & research agents, taxonomy, intelligence DB, review, run history and costs | **Done** (2026-10-27): 292 backend + 43 frontend tests. Browser-verified with synthetic records and a simulated OpenRouter, in a throwaway database. Live AI runs are pending the OpenRouter key and real interview records. |
+| 4 | Taxonomy editing, pilot content, generation, review & publishing, learning pages, playgrounds, Pyodide, narrated videos, quizzes | **Done** (2026-10-27): 363 backend + 100 frontend tests. Browser-verified (desktop and mobile) in a throwaway database with a simulated OpenRouter: review → code check → publish, narration, generation, edit validation, compare, taxonomy, the pilot gate, every student section and all six playgrounds, and that student APIs leak no provenance. Live generation and narration are pending the OpenRouter key. |
+| 5 | Automated quality checks, server-side lab sandbox, coverage gaps, reviewer rubric, regenerate one component | Next |
 | 6 | Progress tracking, attempts, analytics, role-readiness intelligence | |
 | 7 | Hardening, performance, deployment, monitoring, backups, docs | |
 
@@ -324,7 +394,7 @@ Each is integrated through configuration when provided. Status as of 2026-10-27:
 | Frontend | Vercel (Hobby) | `vercel.json` rewrites `/api/*` to the API, so the browser sees a single origin and the path-scoped session cookies work unchanged. Hobby is limited to non-commercial use. It is fine for internal testing; move to Vercel Pro or Cloudflare Pages before real students use it. |
 | API + job worker | Render free web service (native Python runtime, no Docker) | Sleeps after 15 min idle, and the first request takes about a minute. The free tier has no background workers, so the worker runs inside the web process; jobs resume from the `jobs` table. The local disk is wiped when it sleeps, so nothing is kept on disk. |
 | Database | Neon free (0.5 GB, scales to zero) | **Not** Render's free Postgres, which is deleted after 30 days and conflicts with permanent retention. |
-| Media (audio/video) | Cloudflare R2 free (10 GB, no egress fees) | Needed from Phase 4. |
+| Media (audio/video) | Cloudflare R2 free (10 GB, no egress fees) | Narration clips live in Postgres for the pilot; move them to R2 when volume grows. |
 | Backups | Nightly `pg_dump` to R2 from a scheduled GitHub Action | Permanent retention needs an off-site copy. |
 
 Deployment tasks (Phase 7, or earlier if hosting moves forward):

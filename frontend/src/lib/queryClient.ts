@@ -19,11 +19,24 @@ export const adminKeys = {
   source: (id: string) => ['admin', 'sources', id] as const,
   sourceJobs: (id: string) => ['admin', 'sources', id, 'jobs'] as const,
   sourceRecords: (id: string) => ['admin', 'sources', id, 'records'] as const,
+  agentStatus: ['admin', 'agent-status'] as const,
+  agentJobs: ['admin', 'agent-jobs'] as const,
+  explorationSources: ['admin', 'exploration-sources'] as const,
+  intelligence: ['admin', 'intelligence'] as const,
+  taxonomy: ['admin', 'taxonomy'] as const,
+  research: ['admin', 'research'] as const,
+  content: ['admin', 'content'] as const,
+  contentTopic: (id: string) => ['admin', 'content', 'topic', id] as const,
+  contentVersion: (id: string) => ['admin', 'content', 'version', id] as const,
+  contentJobs: ['admin', 'content', 'jobs'] as const,
+  taxonomyAdmin: ['admin', 'taxonomy-admin'] as const,
 }
 
 export const studentKeys = {
   me: ['student', 'me'] as const,
   sessions: ['student', 'sessions'] as const,
+  learn: ['student', 'learn'] as const,
+  topic: (slug: string) => ['student', 'learn', slug] as const,
 }
 
 export const queryClient = new QueryClient({

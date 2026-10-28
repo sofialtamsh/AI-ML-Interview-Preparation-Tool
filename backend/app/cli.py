@@ -5,6 +5,9 @@
     uv run python -m app.cli generate-credentials-key
     uv run python -m app.cli rotate-credentials
     uv run python -m app.cli run-worker
+    uv run python -m app.cli seed-taxonomy
+    uv run python -m app.cli seed-pilot-content
+    uv run python -m app.cli export-starter-fixture PATH   (the frontend test fixture)
 
 `create-admin` reads the password from IPP_BOOTSTRAP_ADMIN_PASSWORD if set, otherwise prompts.
 
@@ -117,6 +120,22 @@ def main() -> None:
         "rotate-credentials", help="Re-encrypt stored source credentials with the newest key"
     )
     commands.add_parser("run-worker", help="Run background jobs in this process")
+    commands.add_parser(
+        "seed-taxonomy", help="Create the starting AI/ML taxonomy if there is none yet"
+    )
+    seed = commands.add_parser(
+        "seed-pilot-content",
+        help="Mark the pilot topics and import their starter content as drafts",
+    )
+    seed.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Also add a new draft where the starter content changed since it was imported",
+    )
+    export = commands.add_parser(
+        "export-starter-fixture", help="Write the starter content as the frontend's test fixture"
+    )
+    export.add_argument("path")
     args = parser.parse_args()
 
     if args.command == "sync-rbac":
@@ -131,6 +150,31 @@ def main() -> None:
         rotate_credentials()
     elif args.command == "run-worker":
         run_worker()
+    elif args.command == "seed-taxonomy":
+        from app.intelligence.taxonomy import seed_default_taxonomy
+
+        with SessionLocal() as db:
+            seeded = seed_default_taxonomy(db)
+        print("Seeded the starting taxonomy." if seeded else "The taxonomy already exists.")
+    elif args.command == "seed-pilot-content":
+        from app.content.seed import seed_starter_content
+
+        with SessionLocal() as db:
+            result = seed_starter_content(db, refresh=args.refresh)
+        print(
+            f"Pilot topics: {result['pilot_topics']}. Drafts created: {result['drafts_created']}; "
+            f"already had content: {result['already_present']}; refreshed: {result['refreshed']}. "
+            "Review them in the Content studio."
+        )
+    elif args.command == "export-starter-fixture":
+        import json
+        from pathlib import Path
+
+        from app.content.seed import starter_fixture
+
+        text = json.dumps(starter_fixture(), ensure_ascii=False, indent=1) + "\n"
+        Path(args.path).write_text(text, encoding="utf-8")
+        print(f"Wrote {args.path}.")
 
 
 if __name__ == "__main__":

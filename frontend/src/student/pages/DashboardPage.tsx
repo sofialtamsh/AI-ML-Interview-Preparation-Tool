@@ -1,10 +1,11 @@
-import { ArrowRight, Copy, Laptop, Sparkles, UsersRound } from 'lucide-react'
+import { ArrowRight, Clock, Compass, Copy, Laptop, Sparkles, UsersRound } from 'lucide-react'
 import { Link } from 'react-router'
 
-import { Card, EmptyState, Skeleton } from '../../components/ui/Feedback'
+import { ButtonLink } from '../../components/ui/Button'
+import { Card, CardHeader, EmptyState, Skeleton } from '../../components/ui/Feedback'
 import { useToast } from '../../components/ui/Toast'
 import { formatDate } from '../../lib/format'
-import { useCurrentStudent, useSessions } from '../api'
+import { useCurrentStudent, useLearnDomains, useSessions } from '../api'
 
 function greeting(hour = new Date().getHours()) {
   if (hour < 5) return 'Burning the midnight oil'
@@ -16,6 +17,8 @@ function greeting(hour = new Date().getHours()) {
 export default function DashboardPage() {
   const student = useCurrentStudent()
   const sessions = useSessions()
+  const domains = useLearnDomains()
+  const topics = (domains.data ?? []).flatMap((d) => d.topics.map((t) => ({ ...t, domain: d.name })))
   const toast = useToast()
   const firstName = student.full_name.split(' ')[0]
 
@@ -45,28 +48,69 @@ export default function DashboardPage() {
             {firstName} <span aria-hidden>👋</span>
           </h1>
           <p className="mt-3 max-w-xl text-white/85">
-            This is your space to get interview-ready for AI/ML roles. Everything you do here is
-            saved to your account, so you can continue on any device.
+            This is your space to get interview-ready for AI/ML roles: bite-size lessons,
+            playgrounds you can poke at, real Python, and interview practice.
           </p>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <ButtonLink to="/app/learn" variant="secondary" className="shadow-lg">
+              <Compass className="size-4" aria-hidden /> Start learning
+            </ButtonLink>
           <button
             type="button"
             onClick={copyId}
-            className="mt-6 inline-flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-1.5 font-mono text-sm ring-1 ring-white/25 backdrop-blur transition hover:bg-white/25"
+            className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-1.5 font-mono text-sm ring-1 ring-white/25 backdrop-blur transition hover:bg-white/25"
             aria-label={`Copy student ID ${student.student_code}`}
           >
             {student.student_code}
             <Copy className="size-3.5" aria-hidden />
           </button>
+          </div>
         </div>
       </section>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="animate-fade-up [animation-delay:80ms] lg:col-span-2">
-          <EmptyState icon={<Sparkles className="size-6" />} title="Your topics are on the way">
-            Our team is preparing the first AI/ML topics. Once they're published, they'll appear
-            here, and every lesson, quiz and practice question you complete will be saved to
-            your account automatically.
-          </EmptyState>
+          {domains.isPending ? (
+            <div className="space-y-3 p-5">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-16" />
+              <Skeleton className="h-16" />
+            </div>
+          ) : topics.length === 0 ? (
+            <EmptyState icon={<Sparkles className="size-6" />} title="Your topics are on the way">
+              Our team is preparing the first AI/ML topics. They'll appear here as soon as
+              they're published.
+            </EmptyState>
+          ) : (
+            <>
+              <CardHeader
+                title="Jump into a topic"
+                description="Each one: cards, a playground, a quiz and more."
+                action={
+                  <Link to="/app/learn" className="text-sm font-semibold text-brand-700 hover:text-brand-800">
+                    See all
+                  </Link>
+                }
+              />
+              <ul className="divide-y divide-slate-100">
+                {topics.slice(0, 4).map((topic) => (
+                  <li key={topic.slug}>
+                    <Link to={`/app/learn/${topic.slug}`} className="group flex items-center gap-4 px-5 py-3.5 transition hover:bg-slate-50">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-slate-500">{topic.domain}</p>
+                        <p className="font-semibold text-slate-900">{topic.name}</p>
+                        <p className="truncate text-sm text-slate-600">{topic.tagline}</p>
+                      </div>
+                      <span className="hidden items-center gap-1 text-xs text-slate-500 sm:inline-flex">
+                        <Clock className="size-3.5" aria-hidden /> {topic.minutes} min
+                      </span>
+                      <ArrowRight className="size-4 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-brand-600" aria-hidden />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </Card>
 
         <Card className="animate-fade-up p-5 [animation-delay:160ms]">

@@ -67,9 +67,18 @@ Handler = Callable[[JobContext], None]
 
 
 def _handlers() -> dict[JobKind, Handler]:
+    from app.agents.exploration import run_exploration
+    from app.agents.research import run_market_research
+    from app.content.generation import run_content_generation, run_content_narration
     from app.sources.service import run_source_fetch
 
-    return {JobKind.SOURCE_FETCH: run_source_fetch}
+    return {
+        JobKind.SOURCE_FETCH: run_source_fetch,
+        JobKind.EXPLORATION: run_exploration,
+        JobKind.MARKET_RESEARCH: run_market_research,
+        JobKind.CONTENT_GENERATION: run_content_generation,
+        JobKind.CONTENT_NARRATION: run_content_narration,
+    }
 
 
 def claim_next_job(db: Session) -> Job | None:

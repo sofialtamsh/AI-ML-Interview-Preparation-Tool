@@ -43,6 +43,23 @@ AI/ML interview-preparation platform (admin console + student app).
   and are never returned, logged or audited. Audit entries name the fields, never the values.
 - Long-running work is a job (`app/jobs/runner.py`) that only an explicit admin action creates.
   Handlers log through `JobContext` and raise `UserFacingError` for messages admins should see.
+- Agent output is checked in code, not trusted:
+  - structured output via `structured_chat` (strict schema, one repair attempt);
+  - quotes and questions checked with `SourceText`;
+  - names never inferred;
+  - everything lands as pending review;
+  - research claims need a retrieved source;
+  - runs honour a spending limit.
+- Content (`app/content/`): bodies are validated by `SCHEMAS` and stored in canonical form;
+  versions are immutable (edit or restore = new version). Lifecycle steps go through
+  `apply_transition` (`TRANSITIONS` holds the permissions). A Python lab publishes only after a
+  passing code check of its exact program. Generation respects `may_generate` (the pilot gate).
+  Students read content only via `app/api/student/learn.py` and `app/schemas/learn.py`, which strip
+  `origin`/`source_ref`. After changing starter content or schemas, run
+  `uv run python -m app.cli export-starter-fixture ../frontend/src/test/fixtures/starter-content.json`
+  (a test fails otherwise) and `seed-pilot-content --refresh` on the dev database.
+- Tests and browser checks never put invented intelligence into the dev database. Use the test
+  DB, or a throwaway `ipp_e2e` database with a simulated OpenRouter (`tests/fake_ai.py`).
 - Schema changes: edit models → `uv run alembic revision --autogenerate -m "..."` → review the file.
   `tests/test_platform.py` fails if models and migrations drift.
 - Tests run against the `ipp_test` database (dropped and recreated per run). Run
@@ -55,6 +72,11 @@ AI/ML interview-preparation platform (admin console + student app).
 - Admin nav entries live in `src/admin/nav.ts` with `anyOf` permissions. Routes in `src/router.tsx`
   are lazy-loaded and wrapped in `RequirePermission`.
 - Charts follow the dataviz skill. Use design tokens from `src/index.css` (`brand-*`).
+- Learning UI lives in `src/learn/`: `sections/` (one per content component, shared by the student
+  topic page and the admin preview), `widgets/` (playgrounds; their maths is in `widgets/ml.ts` with
+  unit tests), `Figures.tsx` (animated SVGs). The playground controls a widget offers must match
+  `WIDGET_CONTROLS` in `backend/app/content/generation.py`. Python runs only through
+  `src/lib/pyodide.ts` (Web Worker, time limit).
 - Run `npm test`, `npm run typecheck`, `npm run build`.
 
 ## Local ports

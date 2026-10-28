@@ -1,0 +1,3615 @@
+{
+ "machine-learning/supervised-learning": {
+  "lesson": {
+   "tagline": "Learning from examples that come with the answers 🔑",
+   "minutes": 8,
+   "level": "beginner",
+   "cards": [
+    {
+     "kind": "hook",
+     "title": "Your inbox already does this",
+     "body": "Gmail learned **spam vs not spam** from millions of emails people had already marked. That's supervised learning: learn from examples that come with the right answer, then answer new ones yourself.",
+     "emoji": "📬",
+     "bullets": [],
+     "figure": "decision_boundary",
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "tldr",
+     "title": "In one line",
+     "body": "Inputs **with** answers go in → the model learns a rule → it predicts answers for inputs it has never seen.",
+     "emoji": "⚡",
+     "bullets": [],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "intuition",
+     "title": "Studying with an answer key",
+     "body": "You try a question, check the key, and adjust. A model does the same thousands of times: guess, compare with the **label**, fix itself.",
+     "emoji": "📝",
+     "bullets": [],
+     "figure": "labels_vs_no_labels",
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "steps",
+     "title": "How it works",
+     "body": "Every supervised project follows the same loop.",
+     "emoji": "🛠️",
+     "bullets": [
+      "Collect examples: **features** (inputs) + **label** (the answer)",
+      "Split them: a **training set** to learn from, a **test set** to check",
+      "Train: the model tunes itself to make fewer mistakes",
+      "Evaluate on the test set it has never seen",
+      "Predict on brand-new data"
+     ],
+     "figure": "train_test_split",
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "example",
+     "title": "Two flavours",
+     "body": "What you predict decides the type of problem.",
+     "emoji": "🔀",
+     "bullets": [
+      "**Classification** → a category: spam or not, fraud or legit, cat or dog",
+      "**Regression** → a number: rent, delivery time, tomorrow's temperature"
+     ],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "math",
+     "title": "The model is just a function",
+     "body": "Training searches for the f that makes ŷ as close to y as possible on the training examples.",
+     "emoji": "🧮",
+     "bullets": [],
+     "figure": null,
+     "formula": "ŷ = f(x)",
+     "symbols": [
+      {
+       "symbol": "x",
+       "meaning": "the features of one example"
+      },
+      {
+       "symbol": "y",
+       "meaning": "its true label"
+      },
+      {
+       "symbol": "ŷ",
+       "meaning": "the model's prediction"
+      },
+      {
+       "symbol": "f",
+       "meaning": "the rule the model learned"
+      }
+     ],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "example",
+     "title": "Memorising isn't learning",
+     "body": "Ace the training data but flop on new data? The model memorised noise: **overfitting**. Too simple to catch the pattern at all? **Underfitting**. You want the sweet spot in between.",
+     "emoji": "🎭",
+     "bullets": [],
+     "figure": "overfit_underfit",
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "myth",
+     "title": "Myth vs fact",
+     "body": "The most common trap in interviews and in real projects.",
+     "emoji": "🚩",
+     "bullets": [],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": "Higher accuracy on the training data means a better model.",
+     "fact": "Only performance on data the model has never seen counts. 100% training accuracy is usually a red flag, not a win."
+    },
+    {
+     "kind": "interview",
+     "title": "What interviewers listen for",
+     "body": "Keep it crisp and show you know where it goes wrong.",
+     "emoji": "🎤",
+     "bullets": [
+      "A one-line definition plus a real example",
+      "Why you hold out a test set",
+      "Classification vs regression, with examples",
+      "Spotting overfitting from train vs test scores"
+     ],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "recap",
+     "title": "Recap",
+     "body": "You've got the core idea. Now go break the playground.",
+     "emoji": "✅",
+     "bullets": [
+      "Supervised = learning from labelled examples",
+      "Train on one set, judge on another",
+      "Categories → classification, numbers → regression",
+      "Train vs test gap reveals overfitting"
+     ],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    }
+   ],
+   "key_terms": [
+    {
+     "term": "Feature",
+     "meaning": "An input the model uses, like hours studied."
+    },
+    {
+     "term": "Label",
+     "meaning": "The correct answer for an example."
+    },
+    {
+     "term": "Training set",
+     "meaning": "Examples the model learns from."
+    },
+    {
+     "term": "Test set",
+     "meaning": "Held-out examples used only to measure performance."
+    },
+    {
+     "term": "Overfitting",
+     "meaning": "Great on training data, poor on new data."
+    },
+    {
+     "term": "Underfitting",
+     "meaning": "Too simple: poor even on training data."
+    }
+   ]
+  },
+  "playground": {
+   "widget": "knn_classifier",
+   "title": "Teach the machine 🎯",
+   "intro": "Each dot is a labelled example. The coloured background shows what the model (k-nearest neighbours) would predict anywhere on the map. Add points, change k, watch the boundary react.",
+   "tasks": [
+    {
+     "prompt": "Set k = 1, then add one orange point deep inside the blue area.",
+     "hint": "Pick the orange class, then click on the map.",
+     "insight": "With k = 1, a single odd point carves out its own island. The model memorises every example, noise included. That's overfitting."
+    },
+    {
+     "prompt": "Now slide k up to 15.",
+     "hint": "Use the k slider.",
+     "insight": "The island disappears. Each prediction is now a vote among 15 neighbours, so one noisy label can't flip it."
+    },
+    {
+     "prompt": "Push k to the maximum.",
+     "hint": "Drag the slider all the way right.",
+     "insight": "The boundary turns into mush and many points land on the wrong side. Too much smoothing = underfitting."
+    },
+    {
+     "prompt": "Drag the ⭐ point close to the boundary.",
+     "hint": "Grab the star and move it.",
+     "insight": "A k-NN prediction is just a vote among the closest labelled examples. Near the boundary the vote gets close, and that's where uncertainty lives."
+    },
+    {
+     "prompt": "Switch on test points and compare train vs test accuracy at k = 1 and k = 15.",
+     "hint": "Use the 'Show test points' toggle.",
+     "insight": "Training accuracy alone lies. A big gap between train and test accuracy is how you catch overfitting."
+    }
+   ]
+  },
+  "video": {
+   "title": "Supervised learning in 3 minutes",
+   "scenes": [
+    {
+     "title": "The answer key",
+     "narration": "Every time you mark an email as spam, you're teaching a model. Supervised learning means learning from examples that already come with the right answer, the label. Show a model enough of them and it figures out the rule.",
+     "on_screen": "Learn from examples that have answers",
+     "figure": "labels_vs_no_labels",
+     "seconds": 25
+    },
+    {
+     "title": "Features and labels",
+     "narration": "Each example has features, the inputs, and a label, the answer. For a spam filter the features might be words and links in the email, and the label is spam or not spam. The model learns a function that maps features to labels.",
+     "on_screen": "x = features, y = label",
+     "figure": "decision_boundary",
+     "seconds": 30
+    },
+    {
+     "title": "Train, then test",
+     "narration": "We split the data. The model learns from the training set, then we measure it on a test set it has never seen. Grading on the training data is like grading a student on the exact questions they practised: it tells you nothing.",
+     "on_screen": "Never grade on the practice paper",
+     "figure": "train_test_split",
+     "seconds": 30
+    },
+    {
+     "title": "Classification or regression",
+     "narration": "If the answer is a category, like fraud or legit, it's classification. If it's a number, like rent or delivery time, it's regression. Same idea, different kind of output.",
+     "on_screen": "Category → classification. Number → regression.",
+     "figure": null,
+     "seconds": 25
+    },
+    {
+     "title": "Memorising vs learning",
+     "narration": "A model that is too flexible memorises noise and fails on new data. That's overfitting. One that is too simple misses the pattern entirely. That's underfitting. Comparing training and test scores tells you which one you have.",
+     "on_screen": "Overfit ← sweet spot → underfit",
+     "figure": "overfit_underfit",
+     "seconds": 35
+    },
+    {
+     "title": "Interview takeaway",
+     "narration": "In an interview: define supervised learning in one line with an example, explain why you hold out a test set, and show you can spot overfitting from the gap between train and test performance. That's the whole game.",
+     "on_screen": "Define it, split it, check the gap",
+     "figure": null,
+     "seconds": 25
+    }
+   ]
+  },
+  "python": {
+   "packages": [
+    "numpy",
+    "scikit-learn"
+   ],
+   "dataset": "400 synthetic app users with two behaviour scores and a label: subscribed (1) or not (0). The boundary between the groups is curved, generated with make_moons.",
+   "steps": [
+    {
+     "title": "Make labelled data",
+     "explanation": "Features X and labels y. Every row is one user and their answer.",
+     "code": "import numpy as np\nfrom sklearn.datasets import make_moons\nfrom sklearn.model_selection import train_test_split\n\n# 400 app users described by two (scaled) behaviour scores.\n# Label: 1 = subscribed, 0 = did not. The boundary between them is curved.\nX, y = make_moons(n_samples=400, noise=0.35, random_state=0)\nprint(\"Users:\", len(X), \"| subscribed:\", int(y.sum()), \"| not:\", int(len(y) - y.sum()))"
+    },
+    {
+     "title": "Hold out a test set",
+     "explanation": "70% to learn from, 30% kept hidden for an honest score. stratify keeps the same class balance in both parts.",
+     "code": "X_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.3, random_state=42, stratify=y\n)\nprint(\"Train:\", len(X_train), \"| Test:\", len(X_test))"
+    },
+    {
+     "title": "Train and predict",
+     "explanation": "k-nearest neighbours predicts by letting the 15 closest training examples vote. fit learns, predict answers, score measures accuracy.",
+     "code": "from sklearn.neighbors import KNeighborsClassifier\n\nmodel = KNeighborsClassifier(n_neighbors=15)\nmodel.fit(X_train, y_train)\nnew_user = [[0.5, 0.0]]\nprint(\"Prediction for a new user:\", \"subscribes\" if model.predict(new_user)[0] else \"does not\")\nprint(\"Test accuracy:\", round(model.score(X_test, y_test), 2))"
+    },
+    {
+     "title": "Spot over- and underfitting",
+     "explanation": "k = 1 memorises (perfect train, worse test). k = 151 is too smooth (both scores drop). The sweet spot sits in between.",
+     "code": "for k in (1, 15, 151):\n    knn = KNeighborsClassifier(n_neighbors=k).fit(X_train, y_train)\n    print(f\"k={k:>3}  train={knn.score(X_train, y_train):.2f}  test={knn.score(X_test, y_test):.2f}\")"
+    }
+   ],
+   "expected_output": "Users: 400 | subscribed: 200 | not: 200\nTrain: 280 | Test: 120\nPrediction for a new user: subscribes\nTest accuracy: 0.88\nk=  1  train=1.00  test=0.84\nk= 15  train=0.90  test=0.88\nk=151  train=0.81  test=0.79",
+   "mistakes": [
+    "Measuring accuracy on the training data and calling it a result.",
+    "Splitting after scaling or feature selection, which leaks test information.",
+    "Forgetting stratify on imbalanced data, so the test set has too few of one class.",
+    "Picking k (or any setting) by looking at test scores; use a validation set instead."
+   ],
+   "applications": [
+    "Spam and fraud detection (classification)",
+    "Credit scoring and churn prediction",
+    "Price, demand and delivery-time forecasting (regression)"
+   ]
+  },
+  "interview": {
+   "questions": [
+    {
+     "level": "basic",
+     "kind": "conceptual",
+     "question": "What is supervised learning? Give an example.",
+     "answer": "Learning a mapping from inputs to outputs using examples that already have the correct output (labels). The model learns from labelled training data and predicts labels for new data. Example: predicting whether an email is spam from emails that users have already marked as spam or not spam.",
+     "interviewer_wants": "A one-line definition, the word 'labelled', and a concrete example rather than a textbook phrase.",
+     "follow_ups": [
+      {
+       "question": "How is it different from unsupervised learning?",
+       "answer": "Unsupervised learning has no labels; it finds structure such as clusters or lower-dimensional patterns in the inputs alone."
+      }
+     ],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "basic",
+     "kind": "conceptual",
+     "question": "What's the difference between classification and regression?",
+     "answer": "Classification predicts a category (spam/not spam, digit 0-9). Regression predicts a continuous number (price, temperature). Many algorithms come in both versions, e.g. decision tree classifier vs regressor. They also use different metrics: accuracy, precision, recall for classification; MSE, MAE, R² for regression.",
+     "interviewer_wants": "Category vs number, an example of each, and awareness that the evaluation metrics differ.",
+     "follow_ups": [
+      {
+       "question": "Is predicting a rating from 1 to 5 classification or regression?",
+       "answer": "Either can work. Ordinal targets are often treated as regression (then rounded) or as classification; the choice depends on whether the distance between classes matters."
+      }
+     ],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "basic",
+     "kind": "practical",
+     "question": "Why do we split data into training and test sets?",
+     "answer": "To estimate how the model performs on data it has never seen. A model can memorise the training data, so its training score is optimistic. The test set acts as new data and must not influence training or model choices.",
+     "interviewer_wants": "The idea of generalisation and that the test set must stay untouched until the end.",
+     "follow_ups": [
+      {
+       "question": "What's a validation set for, then?",
+       "answer": "For tuning hyperparameters and choosing between models. If you tune on the test set, its score is no longer an honest estimate."
+      }
+     ],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "intermediate",
+     "kind": "scenario",
+     "question": "Your model has 99% training accuracy and 70% test accuracy. What's going on and what would you do?",
+     "answer": "That gap means overfitting: the model learned noise specific to the training data. Options: simplify the model (fewer parameters, shallower trees, larger k in k-NN), add regularisation, get more data, use cross-validation to tune complexity, remove leaky or noisy features, and for neural networks use dropout or early stopping.",
+     "interviewer_wants": "Naming overfitting from the train/test gap, then several concrete fixes rather than one.",
+     "follow_ups": [
+      {
+       "question": "What would low training and low test accuracy suggest?",
+       "answer": "Underfitting: the model is too simple or the features don't carry enough signal. Try a more flexible model or better features."
+      }
+     ],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "intermediate",
+     "kind": "conceptual",
+     "question": "Explain the bias-variance tradeoff.",
+     "answer": "Prediction error can be split into bias (error from overly simple assumptions), variance (error from sensitivity to the particular training sample) and irreducible noise. Simple models have high bias and low variance; very flexible models have low bias and high variance. Good models balance the two, which is what tuning complexity and regularisation do.",
+     "interviewer_wants": "Bias = underfitting, variance = overfitting, and that reducing one usually increases the other.",
+     "follow_ups": [
+      {
+       "question": "How does k in k-NN affect bias and variance?",
+       "answer": "Small k: low bias, high variance (jagged boundary). Large k: higher bias, lower variance (smooth boundary)."
+      }
+     ],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "intermediate",
+     "kind": "coding",
+     "question": "How would you train and evaluate a classifier in scikit-learn?",
+     "answer": "Split with train_test_split (stratify for classification), create the model, call fit(X_train, y_train), then evaluate with predict or score on X_test. Put preprocessing such as scaling inside a Pipeline so it is fitted only on the training data. Use cross_val_score or GridSearchCV for tuning.",
+     "interviewer_wants": "fit/predict/score, a stratified split, and fitting preprocessing only on training data.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "advanced",
+     "kind": "scenario",
+     "question": "Only 1% of transactions are fraud. Your classifier is 99% accurate. Is it good?",
+     "answer": "Not necessarily: predicting 'not fraud' for everything already gives 99%. With imbalanced classes, look at precision, recall, F1 and the precision-recall curve, plus the cost of each error type. Fixes include class weights, resampling, threshold tuning and stratified splits.",
+     "interviewer_wants": "Recognising the accuracy paradox and switching to metrics and thresholds that match the business cost.",
+     "follow_ups": [
+      {
+       "question": "Which matters more here, precision or recall?",
+       "answer": "Usually recall (catch fraud), balanced against precision so investigators aren't flooded with false alarms. It depends on the costs."
+      }
+     ],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "advanced",
+     "kind": "practical",
+     "question": "What is data leakage and how can it creep into a supervised pipeline?",
+     "answer": "Leakage is when information that wouldn't be available at prediction time reaches training, inflating scores. Common causes: scaling or imputing on the full dataset before splitting, features computed from the target or from the future, and duplicate rows across train and test. Prevent it by splitting first, fitting preprocessing inside a pipeline, and respecting time order.",
+     "interviewer_wants": "A clear definition and at least two realistic leakage sources with how to prevent them.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    }
+   ],
+   "takeaways": [
+    "Supervised learning learns from labelled examples to predict labels for new data.",
+    "Category → classification; number → regression.",
+    "Judge models only on data they haven't seen; tune on validation, report on test.",
+    "A large train/test gap means overfitting; low scores on both mean underfitting.",
+    "With imbalanced classes, accuracy alone is misleading."
+   ]
+  },
+  "quiz": {
+   "questions": [
+    {
+     "difficulty": "easy",
+     "kind": "concept",
+     "prompt": "What makes a learning problem 'supervised'?",
+     "code": null,
+     "options": [
+      "The training examples come with correct answers (labels)",
+      "A person watches the model while it trains",
+      "The data has no labels",
+      "The model is retrained every day"
+     ],
+     "answer": 0,
+     "explanation": "Supervised means each training example includes its label, so the model can compare its guess with the right answer."
+    },
+    {
+     "difficulty": "easy",
+     "kind": "scenario",
+     "prompt": "Predicting how many minutes a food delivery will take is…",
+     "code": null,
+     "options": [
+      "Classification",
+      "Regression",
+      "Clustering",
+      "Dimensionality reduction"
+     ],
+     "answer": 1,
+     "explanation": "The output is a number, so it's regression."
+    },
+    {
+     "difficulty": "easy",
+     "kind": "concept",
+     "prompt": "Why keep a test set aside?",
+     "code": null,
+     "options": [
+      "To make training faster",
+      "To estimate performance on data the model hasn't seen",
+      "To give the model more examples to learn from",
+      "Because the model can't use all the data at once"
+     ],
+     "answer": 1,
+     "explanation": "The test set stands in for future, unseen data, so its score is an honest estimate."
+    },
+    {
+     "difficulty": "medium",
+     "kind": "scenario",
+     "prompt": "Train accuracy 100%, test accuracy 72%. What's the most likely issue?",
+     "code": null,
+     "options": [
+      "Underfitting",
+      "Overfitting",
+      "Too little training time",
+      "A perfect model"
+     ],
+     "answer": 1,
+     "explanation": "A big gap between train and test performance is the classic sign of overfitting."
+    },
+    {
+     "difficulty": "medium",
+     "kind": "concept",
+     "prompt": "In k-nearest neighbours, what usually happens as k gets very large?",
+     "code": null,
+     "options": [
+      "The boundary gets more jagged",
+      "The model memorises the training data",
+      "The boundary gets smoother and can underfit",
+      "Training accuracy reaches 100%"
+     ],
+     "answer": 2,
+     "explanation": "Averaging over many neighbours smooths the boundary; too much smoothing ignores real structure."
+    },
+    {
+     "difficulty": "medium",
+     "kind": "code",
+     "prompt": "What does this print's number tell you?",
+     "code": "model.fit(X_train, y_train)\nprint(model.score(X_test, y_test))",
+     "options": [
+      "Accuracy on the training data",
+      "Accuracy on the held-out test data",
+      "The number of correct labels in y_test",
+      "The model's loss during training"
+     ],
+     "answer": 1,
+     "explanation": "For classifiers, score returns accuracy on the data you pass in, here the test set."
+    },
+    {
+     "difficulty": "hard",
+     "kind": "scenario",
+     "prompt": "1% of emails are spam. A model that says 'not spam' for every email has what accuracy?",
+     "code": null,
+     "options": [
+      "1%",
+      "50%",
+      "99%",
+      "It can't be measured"
+     ],
+     "answer": 2,
+     "explanation": "It's right on all 99% non-spam emails. That's why accuracy misleads on imbalanced data."
+    }
+   ]
+  },
+  "revision": {
+   "definitions": [
+    {
+     "term": "Supervised learning",
+     "meaning": "Learning a mapping from inputs to outputs using labelled examples."
+    },
+    {
+     "term": "Feature / label",
+     "meaning": "Input variables / the correct answer for an example."
+    },
+    {
+     "term": "Training / test set",
+     "meaning": "Data to learn from / held-out data to measure performance."
+    },
+    {
+     "term": "Overfitting",
+     "meaning": "Fits training data (and its noise) too closely; poor on new data."
+    },
+    {
+     "term": "Underfitting",
+     "meaning": "Too simple to capture the pattern; poor even on training data."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Prediction",
+     "expression": "ŷ = f(x)",
+     "meaning": "The learned function maps features to a prediction."
+    },
+    {
+     "name": "Accuracy",
+     "expression": "correct predictions / total predictions",
+     "meaning": "Share of examples classified correctly."
+    }
+   ],
+   "comparison": {
+    "title": "Classification vs regression",
+    "columns": [
+     "",
+     "Classification",
+     "Regression"
+    ],
+    "rows": [
+     [
+      "Output",
+      "A category",
+      "A number"
+     ],
+     [
+      "Example",
+      "Spam or not",
+      "Delivery time"
+     ],
+     [
+      "Typical metrics",
+      "Accuracy, precision, recall, F1",
+      "MSE, MAE, R²"
+     ]
+    ]
+   },
+   "mistakes": [
+    "Reporting training accuracy as the model's performance.",
+    "Fitting scalers or encoders before splitting (leakage).",
+    "Trusting accuracy on imbalanced classes."
+   ],
+   "confusions": [
+    {
+     "pair": "Validation vs test set",
+     "difference": "Validation is for tuning; the test set is touched once, for the final honest score."
+    },
+    {
+     "pair": "Overfitting vs underfitting",
+     "difference": "Big train-test gap vs poor scores on both."
+    }
+   ],
+   "takeaways": [
+    "Labels make it supervised.",
+    "Split first, then preprocess and train.",
+    "Pick metrics that match the problem and its costs."
+   ]
+  }
+ },
+ "machine-learning/unsupervised-learning": {
+  "lesson": {
+   "tagline": "No answer key? Find the patterns anyway 🧩",
+   "minutes": 8,
+   "level": "beginner",
+   "cards": [
+    {
+     "kind": "hook",
+     "title": "How does Spotify know your vibe?",
+     "body": "Nobody labelled your songs 'late-night lo-fi'. The app groups songs and listeners that behave alike, all on its own. That's **unsupervised learning**.",
+     "emoji": "🎧",
+     "bullets": [],
+     "figure": "clusters",
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "tldr",
+     "title": "In one line",
+     "body": "Only inputs, **no labels** → the model discovers structure: groups, patterns, or a simpler way to describe the data.",
+     "emoji": "⚡",
+     "bullets": [],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "intuition",
+     "title": "Sorting a messy drawer",
+     "body": "No one tells you the categories, yet you naturally make piles: socks here, chargers there. Clustering does the same with data points that sit close together.",
+     "emoji": "🧺",
+     "bullets": [],
+     "figure": "labels_vs_no_labels",
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "example",
+     "title": "What it's used for",
+     "body": "Three jobs come up again and again.",
+     "emoji": "🧭",
+     "bullets": [
+      "**Clustering**: customer segments, similar songs, topic groups",
+      "**Dimensionality reduction** (PCA): squash 100 features into a few that matter",
+      "**Anomaly detection**: flag the transaction that fits no pattern"
+     ],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "steps",
+     "title": "K-means in 4 moves",
+     "body": "The most asked-about clustering algorithm repeats two simple steps.",
+     "emoji": "🔁",
+     "bullets": [
+      "Pick k and drop k centroids (k-means++ spreads them out smartly)",
+      "**Assign**: every point joins its nearest centroid",
+      "**Update**: move each centroid to the average of its points",
+      "Repeat until nothing changes"
+     ],
+     "figure": "clusters",
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "math",
+     "title": "What k-means minimises",
+     "body": "Inertia: the total squared distance from each point to its own centroid. Smaller means tighter clusters.",
+     "emoji": "🧮",
+     "bullets": [],
+     "figure": null,
+     "formula": "J = Σ ‖xᵢ − μ_c(i)‖²",
+     "symbols": [
+      {
+       "symbol": "xᵢ",
+       "meaning": "a data point"
+      },
+      {
+       "symbol": "μ_c(i)",
+       "meaning": "the centroid of the cluster xᵢ belongs to"
+      },
+      {
+       "symbol": "J",
+       "meaning": "inertia (within-cluster sum of squares)"
+      }
+     ],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "example",
+     "title": "So how many clusters?",
+     "body": "Inertia always drops as k grows, so don't just minimise it. Look for the **elbow** where gains flatten, and check the **silhouette** score (closer to 1 = better separated).",
+     "emoji": "📐",
+     "bullets": [],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "myth",
+     "title": "Myth vs fact",
+     "body": "Clusters are a lens, not the truth.",
+     "emoji": "🚩",
+     "bullets": [],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": "The clusters k-means finds are the real, natural groups in the data.",
+     "fact": "K-means always returns k groups, even in random noise. It assumes round, similar-sized clusters, and it's sensitive to feature scaling."
+    },
+    {
+     "kind": "interview",
+     "title": "What interviewers listen for",
+     "body": "Show you know the algorithm and its limits.",
+     "emoji": "🎤",
+     "bullets": [
+      "Supervised vs unsupervised in one line",
+      "The assign → update loop of k-means",
+      "Choosing k: elbow + silhouette",
+      "Why you scale features first"
+     ],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "recap",
+     "title": "Recap",
+     "body": "Now go watch clusters form in the playground.",
+     "emoji": "✅",
+     "bullets": [
+      "Unsupervised = no labels, find structure",
+      "K-means: assign to nearest centroid, move centroids, repeat",
+      "Pick k with the elbow and silhouette",
+      "Scale features; expect round clusters"
+     ],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    }
+   ],
+   "key_terms": [
+    {
+     "term": "Cluster",
+     "meaning": "A group of points that are similar to each other."
+    },
+    {
+     "term": "Centroid",
+     "meaning": "The average point of a cluster."
+    },
+    {
+     "term": "Inertia",
+     "meaning": "Total squared distance of points to their centroid."
+    },
+    {
+     "term": "Elbow method",
+     "meaning": "Pick k where adding clusters stops helping much."
+    },
+    {
+     "term": "Silhouette score",
+     "meaning": "From −1 to 1: how well separated clusters are."
+    }
+   ]
+  },
+  "playground": {
+   "widget": "kmeans",
+   "title": "Watch clusters form 🫧",
+   "intro": "The points have no labels. Pick k, then step through k-means: points join their nearest centroid, centroids move to the middle of their group, repeat.",
+   "tasks": [
+    {
+     "prompt": "Keep k = 3 and press Step a few times.",
+     "hint": "Each press does one assign or one update.",
+     "insight": "Centroids slide toward the centre of their groups and stop once no point changes cluster. That's convergence."
+    },
+    {
+     "prompt": "Set k = 6 on data with 3 visible blobs.",
+     "hint": "Move the k slider, then Run.",
+     "insight": "K-means happily splits real groups to give you 6. It always returns exactly k clusters, whether or not they make sense."
+    },
+    {
+     "prompt": "Open the elbow chart and find where the curve bends.",
+     "hint": "Look for where the line stops dropping steeply.",
+     "insight": "Inertia always shrinks as k grows. The bend (the elbow) is where extra clusters stop buying much."
+    },
+    {
+     "prompt": "Press New starting points a few times with k = 4.",
+     "hint": "Same data, different random centroids.",
+     "insight": "Different starts can end in different answers. That's why libraries run k-means several times (n_init) and keep the best."
+    }
+   ]
+  },
+  "video": {
+   "title": "Unsupervised learning & k-means in 3 minutes",
+   "scenes": [
+    {
+     "title": "No answers given",
+     "narration": "In supervised learning every example comes with an answer. Here there are none. Unsupervised learning looks only at the inputs and finds structure nobody pointed out, like groups of similar customers or songs.",
+     "on_screen": "No labels. Just patterns.",
+     "figure": "labels_vs_no_labels",
+     "seconds": 25
+    },
+    {
+     "title": "Three big jobs",
+     "narration": "Most unsupervised work is one of three jobs: clustering similar items, reducing many features to a few with methods like PCA, or spotting anomalies that fit no pattern, like a suspicious payment.",
+     "on_screen": "Cluster · Compress · Catch outliers",
+     "figure": null,
+     "seconds": 25
+    },
+    {
+     "title": "K-means, step by step",
+     "narration": "K-means starts with k centroids. Each point joins the nearest one. Then every centroid moves to the average of its points. Assign, update, repeat, until nothing changes. Simple, fast, and everywhere.",
+     "on_screen": "Assign → update → repeat",
+     "figure": "clusters",
+     "seconds": 35
+    },
+    {
+     "title": "What it optimises",
+     "narration": "Behind the scenes, k-means minimises inertia: the total squared distance from each point to its centroid. Each assign step and each update step can only lower it, which is why the algorithm settles down.",
+     "on_screen": "Minimise inertia",
+     "figure": null,
+     "seconds": 30
+    },
+    {
+     "title": "Choosing k",
+     "narration": "Inertia always falls as you add clusters, so you can't just minimise it. Plot it against k and look for the elbow, then check the silhouette score, which rewards tight, well separated clusters.",
+     "on_screen": "Elbow + silhouette",
+     "figure": null,
+     "seconds": 30
+    },
+    {
+     "title": "Interview takeaway",
+     "narration": "Explain the assign and update loop, how you'd pick k, and the catches: scale your features, expect round clusters, and remember k-means returns k groups even when the data has none.",
+     "on_screen": "Know the loop, know the limits",
+     "figure": null,
+     "seconds": 25
+    }
+   ]
+  },
+  "python": {
+   "packages": [
+    "numpy",
+    "scikit-learn"
+   ],
+   "dataset": "300 synthetic shoppers with two features, generated with make_blobs. The true group labels exist but we deliberately throw them away.",
+   "steps": [
+    {
+     "title": "Unlabelled data",
+     "explanation": "make_blobs also returns labels; the underscore throws them away so the model only ever sees X.",
+     "code": "import numpy as np\nfrom sklearn.datasets import make_blobs\n\n# 300 shoppers described by two features. We never use the \"true group\" labels.\nX, _ = make_blobs(n_samples=300, centers=3, cluster_std=0.9, random_state=7)\nprint(\"Shoppers:\", X.shape[0], \"| features:\", X.shape[1])"
+    },
+    {
+     "title": "Run k-means",
+     "explanation": "n_init=10 runs ten different starts and keeps the best; random_state makes it repeatable.",
+     "code": "from sklearn.cluster import KMeans\n\nkmeans = KMeans(n_clusters=3, n_init=10, random_state=0)\nlabels = kmeans.fit_predict(X)\nsizes = np.bincount(labels)\nprint(\"Cluster sizes:\", sorted(sizes.tolist()))\nprint(\"Inertia (k=3):\", round(kmeans.inertia_, 1))"
+    },
+    {
+     "title": "The elbow",
+     "explanation": "Inertia for k = 1…6. Watch the huge drops stop after k = 3.",
+     "code": "for k in range(1, 7):\n    inertia = KMeans(n_clusters=k, n_init=10, random_state=0).fit(X).inertia_\n    print(f\"k={k}  inertia={inertia:8.1f}\")"
+    },
+    {
+     "title": "Silhouette check",
+     "explanation": "Higher is better separated. It peaks at the k the data supports.",
+     "code": "from sklearn.metrics import silhouette_score\n\nfor k in (2, 3, 4):\n    labels_k = KMeans(n_clusters=k, n_init=10, random_state=0).fit_predict(X)\n    print(f\"k={k}  silhouette={silhouette_score(X, labels_k):.2f}\")"
+    }
+   ],
+   "expected_output": "Shoppers: 300 | features: 2\nCluster sizes: [100, 100, 100]\nInertia (k=3): 464.5\nk=1  inertia= 18552.6\nk=2  inertia=  3189.5\nk=3  inertia=   464.5\nk=4  inertia=   406.3\nk=5  inertia=   352.2\nk=6  inertia=   303.1\nk=2  silhouette=0.75\nk=3  silhouette=0.81\nk=4  silhouette=0.66",
+   "mistakes": [
+    "Not scaling features, so one large-valued feature dominates the distances.",
+    "Picking k by the lowest inertia (it always prefers more clusters).",
+    "Running k-means once and trusting a possibly bad random start.",
+    "Using k-means on long, curved or very unequal clusters (try DBSCAN or GMMs)."
+   ],
+   "applications": [
+    "Customer segmentation for marketing",
+    "Grouping similar products, songs or articles",
+    "Compressing colours in an image (colour quantisation)"
+   ]
+  },
+  "interview": {
+   "questions": [
+    {
+     "level": "basic",
+     "kind": "conceptual",
+     "question": "What is unsupervised learning? How does it differ from supervised learning?",
+     "answer": "Unsupervised learning works with unlabelled data and finds structure in the inputs alone, such as clusters, lower-dimensional representations or anomalies. Supervised learning needs labels and learns to predict them. Example: segmenting customers by behaviour without any predefined segments.",
+     "interviewer_wants": "The 'no labels' point, a task type (clustering, reduction, anomaly detection) and a real example.",
+     "follow_ups": [
+      {
+       "question": "How do you evaluate a model when there are no labels?",
+       "answer": "With internal metrics (inertia, silhouette), stability across runs, and whether the result is useful downstream or makes sense to domain experts."
+      }
+     ],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "basic",
+     "kind": "conceptual",
+     "question": "Walk me through the k-means algorithm.",
+     "answer": "Choose k and initialise k centroids (usually with k-means++). Repeat: assign each point to its nearest centroid, then move each centroid to the mean of its assigned points. Stop when assignments no longer change or a maximum number of iterations is reached. It minimises the within-cluster sum of squared distances.",
+     "interviewer_wants": "The two alternating steps, the stopping condition, and what objective it minimises.",
+     "follow_ups": [
+      {
+       "question": "Is k-means guaranteed to find the best clustering?",
+       "answer": "No. It converges to a local minimum that depends on initialisation, which is why it's run several times (n_init)."
+      }
+     ],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "intermediate",
+     "kind": "practical",
+     "question": "How do you choose the number of clusters k?",
+     "answer": "Plot inertia against k and look for the elbow where improvements flatten; compute the silhouette score for several k and prefer higher values; use the gap statistic; and above all check whether the clusters are interpretable and useful for the business question.",
+     "interviewer_wants": "More than one method, and the note that inertia always decreases with k.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "intermediate",
+     "kind": "scenario",
+     "question": "One feature is annual income in rupees, another is age. You run k-means and the clusters only split by income. Why?",
+     "answer": "K-means uses Euclidean distance, and income's scale is far larger than age's, so it dominates every distance. Standardise or normalise features (e.g. StandardScaler) before clustering so each contributes fairly.",
+     "interviewer_wants": "Distance-based algorithms need feature scaling, and why.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "intermediate",
+     "kind": "math",
+     "question": "What does a silhouette score of 0.8 vs 0.1 tell you?",
+     "answer": "The silhouette compares each point's average distance to its own cluster (a) with its distance to the nearest other cluster (b): s = (b − a) / max(a, b). Near 1 means well separated clusters (0.8 is strong); near 0 means points sit on the borders between clusters (0.1 is weak); negative suggests misassignment.",
+     "interviewer_wants": "What the score compares, its range, and how to read values.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "advanced",
+     "kind": "conceptual",
+     "question": "When does k-means fail, and what would you use instead?",
+     "answer": "It assumes roughly spherical, similarly sized clusters, so it struggles with elongated or curved shapes, very different densities, and outliers (which drag centroids). Alternatives: DBSCAN or HDBSCAN for arbitrary shapes and noise, Gaussian Mixture Models for elliptical clusters with soft assignments, and hierarchical clustering when you want a dendrogram.",
+     "interviewer_wants": "Concrete failure cases and matching alternatives.",
+     "follow_ups": [
+      {
+       "question": "What does DBSCAN need instead of k?",
+       "answer": "A neighbourhood radius (eps) and a minimum number of points; it finds dense regions and marks sparse points as noise."
+      }
+     ],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "advanced",
+     "kind": "coding",
+     "question": "How would you cluster customers in scikit-learn so the result is reproducible and fair to every feature?",
+     "answer": "Build a Pipeline with StandardScaler followed by KMeans(n_clusters=k, n_init=10, random_state=0). Fit on the customer features, read labels_ or call predict for new customers, and evaluate k with inertia and silhouette_score.",
+     "interviewer_wants": "Scaling inside a pipeline, n_init, random_state, and an evaluation step.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    }
+   ],
+   "takeaways": [
+    "Unsupervised learning finds structure without labels.",
+    "K-means alternates assign and update steps to minimise inertia.",
+    "Choose k with the elbow, silhouette and common sense.",
+    "Scale features; k-means prefers round, similar-sized clusters."
+   ]
+  },
+  "quiz": {
+   "questions": [
+    {
+     "difficulty": "easy",
+     "kind": "concept",
+     "prompt": "What does unsupervised learning work with?",
+     "code": null,
+     "options": [
+      "Examples with labels",
+      "Inputs without labels",
+      "Only images",
+      "A reward signal from a game"
+     ],
+     "answer": 1,
+     "explanation": "No labels: the model finds structure in the inputs themselves."
+    },
+    {
+     "difficulty": "easy",
+     "kind": "scenario",
+     "prompt": "Which task is unsupervised?",
+     "code": null,
+     "options": [
+      "Predicting house prices from past sales",
+      "Grouping customers by shopping behaviour",
+      "Detecting spam from labelled emails",
+      "Recognising handwritten digits from labelled images"
+     ],
+     "answer": 1,
+     "explanation": "Grouping without predefined categories is clustering."
+    },
+    {
+     "difficulty": "medium",
+     "kind": "concept",
+     "prompt": "In k-means, what happens in the update step?",
+     "code": null,
+     "options": [
+      "Each point moves toward the nearest centroid",
+      "Each centroid moves to the mean of its assigned points",
+      "k increases by one",
+      "Outliers are removed"
+     ],
+     "answer": 1,
+     "explanation": "Assign points to the nearest centroid, then move centroids to the average of their points."
+    },
+    {
+     "difficulty": "medium",
+     "kind": "concept",
+     "prompt": "Why can't you choose k simply by picking the lowest inertia?",
+     "code": null,
+     "options": [
+      "Inertia always decreases as k grows",
+      "Inertia is always zero",
+      "Inertia only works for k = 2",
+      "Lower inertia means worse clusters"
+     ],
+     "answer": 0,
+     "explanation": "More clusters always reduce inertia (k = number of points gives 0), so you look for the elbow instead."
+    },
+    {
+     "difficulty": "medium",
+     "kind": "scenario",
+     "prompt": "Features are salary (₹) and age. Clusters split only by salary. Fix?",
+     "code": null,
+     "options": [
+      "Use more clusters",
+      "Scale the features before clustering",
+      "Remove the age feature",
+      "Run fewer iterations"
+     ],
+     "answer": 1,
+     "explanation": "Distances are dominated by the large-scale feature until you standardise."
+    },
+    {
+     "difficulty": "hard",
+     "kind": "math",
+     "prompt": "A silhouette score close to 0 for most points suggests…",
+     "code": null,
+     "options": [
+      "Very well separated clusters",
+      "Points lie near the boundaries between clusters",
+      "The data has no outliers",
+      "k-means converged perfectly"
+     ],
+     "answer": 1,
+     "explanation": "Near 0 means a point is about as close to another cluster as to its own."
+    },
+    {
+     "difficulty": "hard",
+     "kind": "scenario",
+     "prompt": "Your data forms two interlocking crescent shapes. Best choice?",
+     "code": null,
+     "options": [
+      "k-means with k = 2",
+      "DBSCAN",
+      "Linear regression",
+      "k-means with k = 10"
+     ],
+     "answer": 1,
+     "explanation": "Density-based clustering follows arbitrary shapes; k-means assumes round clusters."
+    }
+   ]
+  },
+  "revision": {
+   "definitions": [
+    {
+     "term": "Unsupervised learning",
+     "meaning": "Finding structure in data without labels."
+    },
+    {
+     "term": "Clustering",
+     "meaning": "Grouping similar points together."
+    },
+    {
+     "term": "Centroid",
+     "meaning": "The mean of the points in a cluster."
+    },
+    {
+     "term": "Inertia",
+     "meaning": "Sum of squared distances from points to their centroid."
+    },
+    {
+     "term": "Silhouette",
+     "meaning": "(b − a) / max(a, b); near 1 = well separated."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "K-means objective",
+     "expression": "J = Σ ‖xᵢ − μ_c(i)‖²",
+     "meaning": "Total squared distance to assigned centroids."
+    },
+    {
+     "name": "Silhouette",
+     "expression": "s = (b − a) / max(a, b)",
+     "meaning": "a: mean distance within the cluster; b: to the nearest other cluster."
+    }
+   ],
+   "comparison": {
+    "title": "Supervised vs unsupervised",
+    "columns": [
+     "",
+     "Supervised",
+     "Unsupervised"
+    ],
+    "rows": [
+     [
+      "Labels",
+      "Yes",
+      "No"
+     ],
+     [
+      "Goal",
+      "Predict the label",
+      "Find structure"
+     ],
+     [
+      "Examples",
+      "Spam filter, price prediction",
+      "Segments, PCA, anomalies"
+     ],
+     [
+      "Evaluation",
+      "Compare with true labels",
+      "Silhouette, inertia, usefulness"
+     ]
+    ]
+   },
+   "mistakes": [
+    "Clustering unscaled features.",
+    "Choosing k by minimum inertia.",
+    "Assuming clusters are 'real' groups without checking."
+   ],
+   "confusions": [
+    {
+     "pair": "k-means vs k-NN",
+     "difference": "k-means clusters unlabelled data into k groups; k-NN classifies using k labelled neighbours."
+    }
+   ],
+   "takeaways": [
+    "No labels → unsupervised.",
+    "K-means: assign, update, repeat.",
+    "Pick k with the elbow and silhouette."
+   ]
+  }
+ },
+ "machine-learning/regression": {
+  "lesson": {
+   "tagline": "Draw the best straight line through the chaos 📈",
+   "minutes": 9,
+   "level": "beginner",
+   "cards": [
+    {
+     "kind": "hook",
+     "title": "Guess the rent",
+     "body": "Bigger flat, higher rent. Roughly. **Linear regression** turns that 'roughly' into a line you can use: give it a size, get a predicted rent.",
+     "emoji": "🏠",
+     "bullets": [],
+     "figure": "scatter_line",
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "tldr",
+     "title": "In one line",
+     "body": "Fit the straight line that keeps the **squared errors** as small as possible, then use it to predict numbers.",
+     "emoji": "⚡",
+     "bullets": [],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "math",
+     "title": "The whole model",
+     "body": "Two numbers to learn: how steep the line is and where it starts.",
+     "emoji": "🧮",
+     "bullets": [],
+     "figure": null,
+     "formula": "ŷ = w·x + b",
+     "symbols": [
+      {
+       "symbol": "x",
+       "meaning": "input (flat size)"
+      },
+      {
+       "symbol": "ŷ",
+       "meaning": "predicted output (rent)"
+      },
+      {
+       "symbol": "w",
+       "meaning": "slope: rent added per extra m²"
+      },
+      {
+       "symbol": "b",
+       "meaning": "intercept: the line's value at x = 0"
+      }
+     ],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "intuition",
+     "title": "Residuals = how wrong you are",
+     "body": "For each point, the gap between the real value and the line is a **residual**. Square them so big misses hurt more and signs don't cancel, then average: that's MSE.",
+     "emoji": "📏",
+     "bullets": [],
+     "figure": "residuals",
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "math",
+     "title": "The score to beat",
+     "body": "Training finds the w and b with the smallest MSE. For one feature there's even a closed form: w = cov(x, y) / var(x).",
+     "emoji": "🎯",
+     "bullets": [],
+     "figure": null,
+     "formula": "MSE = (1/n) Σ (yᵢ − ŷᵢ)²",
+     "symbols": [
+      {
+       "symbol": "yᵢ",
+       "meaning": "true value of example i"
+      },
+      {
+       "symbol": "ŷᵢ",
+       "meaning": "the line's prediction"
+      },
+      {
+       "symbol": "n",
+       "meaning": "number of examples"
+      }
+     ],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "steps",
+     "title": "Two ways to fit it",
+     "body": "Same answer, different routes.",
+     "emoji": "🛠️",
+     "bullets": [
+      "**Normal equation**: solve for w and b directly (great for small data)",
+      "**Gradient descent**: nudge w and b downhill on the MSE (scales to huge data)"
+     ],
+     "figure": "loss_bowl",
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "example",
+     "title": "How good is the fit?",
+     "body": "**R²** says what share of the variation your line explains: 1 = perfect, 0 = no better than always predicting the average.",
+     "emoji": "📊",
+     "bullets": [],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "myth",
+     "title": "Myth vs fact",
+     "body": "Squared errors have a side effect.",
+     "emoji": "🚩",
+     "bullets": [],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": "One weird data point can't change the line much.",
+     "fact": "Squaring makes far-off points (outliers) pull hard on the line. Check for them, or use a robust loss like Huber."
+    },
+    {
+     "kind": "interview",
+     "title": "What interviewers listen for",
+     "body": "Formulas plus judgment.",
+     "emoji": "🎤",
+     "bullets": [
+      "ŷ = w·x + b and what w, b mean",
+      "Why minimise squared error",
+      "R² and MSE in plain words",
+      "Assumptions and outliers"
+     ],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "recap",
+     "title": "Recap",
+     "body": "Now drag some points around in the playground.",
+     "emoji": "✅",
+     "bullets": [
+      "A line: ŷ = w·x + b",
+      "Fit by minimising MSE",
+      "R² measures explained variation",
+      "Outliers pull the line"
+     ],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    }
+   ],
+   "key_terms": [
+    {
+     "term": "Slope (w)",
+     "meaning": "Change in prediction for a one-unit change in x."
+    },
+    {
+     "term": "Intercept (b)",
+     "meaning": "Prediction when x is 0."
+    },
+    {
+     "term": "Residual",
+     "meaning": "True value minus predicted value."
+    },
+    {
+     "term": "MSE",
+     "meaning": "Mean of squared residuals."
+    },
+    {
+     "term": "R²",
+     "meaning": "Share of the variance in y explained by the model."
+    }
+   ]
+  },
+  "playground": {
+   "widget": "linear_regression",
+   "title": "Fit the line yourself 📈",
+   "intro": "Drag the slope and intercept to fit the points by hand, then let least squares do it. The red bars are residuals; the squares show what MSE adds up.",
+   "tasks": [
+    {
+     "prompt": "Use the sliders to make the MSE as small as you can.",
+     "hint": "Get the slope right first, then shift the line up or down.",
+     "insight": "You're doing what training does: searching for the w and b with the smallest error."
+    },
+    {
+     "prompt": "Press Best fit and compare its MSE with yours.",
+     "hint": "Best fit uses the least-squares formula.",
+     "insight": "Least squares finds the exact minimum, so you can never beat it on this data."
+    },
+    {
+     "prompt": "Add one point far above the others.",
+     "hint": "Click high up on the chart.",
+     "insight": "The best-fit line tilts toward it. Squared errors make outliers pull hard on the fit."
+    },
+    {
+     "prompt": "Switch on Show squares and watch them as you move the line.",
+     "hint": "Each square's area is a residual squared.",
+     "insight": "MSE is literally the average area of these squares. Big misses dominate."
+    }
+   ]
+  },
+  "video": {
+   "title": "Linear regression in 3 minutes",
+   "scenes": [
+    {
+     "title": "Predicting a number",
+     "narration": "Linear regression predicts a number from inputs. Give it a flat's size, it predicts the rent. It does this by drawing the straight line that best fits past examples.",
+     "on_screen": "Size in → rent out",
+     "figure": "scatter_line",
+     "seconds": 25
+    },
+    {
+     "title": "Two knobs",
+     "narration": "The line has two knobs. The slope w says how much the prediction rises for each extra square metre. The intercept b shifts the whole line up or down. Learning means finding good values for both.",
+     "on_screen": "ŷ = w·x + b",
+     "figure": null,
+     "seconds": 30
+    },
+    {
+     "title": "Measuring mistakes",
+     "narration": "For every point, the gap between the real value and the line is a residual. We square each residual and average them. That's the mean squared error. Squaring stops positive and negative errors cancelling out and punishes big misses.",
+     "on_screen": "Residual = real − predicted",
+     "figure": "residuals",
+     "seconds": 35
+    },
+    {
+     "title": "Finding the best line",
+     "narration": "The best line has the smallest MSE. With one feature you can solve it directly: slope equals covariance over variance. For huge datasets, gradient descent walks downhill on the error until it reaches the bottom.",
+     "on_screen": "Minimise MSE",
+     "figure": "loss_bowl",
+     "seconds": 35
+    },
+    {
+     "title": "How good is it?",
+     "narration": "R squared tells you how much of the ups and downs in rent your line explains. One is perfect, zero means you'd do just as well predicting the average every time.",
+     "on_screen": "R² = explained variation",
+     "figure": null,
+     "seconds": 25
+    },
+    {
+     "title": "Interview takeaway",
+     "narration": "Know the equation, why we minimise squared error, how to read MSE and R squared, and the weak spots: outliers pull the line, and the relationship has to be roughly linear.",
+     "on_screen": "Line, loss, fit, and its weak spots",
+     "figure": null,
+     "seconds": 25
+    }
+   ]
+  },
+  "python": {
+   "packages": [
+    "numpy",
+    "scikit-learn"
+   ],
+   "dataset": "50 synthetic flats: size in m² and monthly rent in thousands of rupees, with random noise added to a true line (rent = 4 + 0.25 × size).",
+   "steps": [
+    {
+     "title": "Make the data",
+     "explanation": "A true line plus noise, with a fixed seed so everyone sees the same numbers.",
+     "code": "import numpy as np\n\nrng = np.random.default_rng(0)\n# 50 flats: size in square metres -> rent in thousands of rupees per month.\nsize = rng.uniform(30, 120, 50)\nrent = 4 + 0.25 * size + rng.normal(0, 2.5, 50)\nprint(\"First 3 flats:\", [(int(round(s)), float(round(r, 1))) for s, r in zip(size[:3], rent[:3])])"
+    },
+    {
+     "title": "Least squares by hand",
+     "explanation": "Slope = covariance / variance; the line passes through the mean point.",
+     "code": "# Least squares by hand: slope = cov(x, y) / var(x)\nw = np.sum((size - size.mean()) * (rent - rent.mean())) / np.sum((size - size.mean()) ** 2)\nb = rent.mean() - w * size.mean()\nprint(f\"By hand:       rent = {w:.3f} * size + {b:.2f}\")"
+    },
+    {
+     "title": "Same thing with scikit-learn",
+     "explanation": "scikit-learn expects a 2-D feature array, hence reshape(-1, 1).",
+     "code": "from sklearn.linear_model import LinearRegression\n\nmodel = LinearRegression().fit(size.reshape(-1, 1), rent)\nprint(f\"scikit-learn:  rent = {model.coef_[0]:.3f} * size + {model.intercept_:.2f}\")"
+    },
+    {
+     "title": "Evaluate and predict",
+     "explanation": "MSE is in squared units; R² is unit-free. Then predict an 80 m² flat.",
+     "code": "predicted = model.predict(size.reshape(-1, 1))\nmse = np.mean((rent - predicted) ** 2)\nr2 = model.score(size.reshape(-1, 1), rent)\nprint(f\"MSE = {mse:.2f}   R^2 = {r2:.3f}\")\nprint(f\"Predicted rent for 80 m^2: {model.predict([[80]])[0]:.1f}k\")"
+    }
+   ],
+   "expected_output": "First 3 flats: [(87, 26.7), (54, 14.5), (34, 12.4)]\nBy hand:       rent = 0.265 * size + 2.96\nscikit-learn:  rent = 0.265 * size + 2.96\nMSE = 6.21   R^2 = 0.886\nPredicted rent for 80 m^2: 24.1k",
+   "mistakes": [
+    "Passing a 1-D array as X to scikit-learn (it needs shape (n, 1)).",
+    "Judging fit by MSE alone without a baseline or R².",
+    "Extrapolating far outside the range of the training data.",
+    "Ignoring outliers that drag the fitted line."
+   ],
+   "applications": [
+    "Price and rent estimation",
+    "Sales and demand forecasting baselines",
+    "Quantifying the effect of one variable on another"
+   ]
+  },
+  "interview": {
+   "questions": [
+    {
+     "level": "basic",
+     "kind": "conceptual",
+     "question": "What is linear regression?",
+     "answer": "A supervised method that predicts a continuous target as a linear combination of the features: ŷ = w·x + b (or ŷ = Xw + b with many features). It learns the weights that minimise the mean squared error between predictions and true values.",
+     "interviewer_wants": "The equation, 'continuous target', and that it minimises squared error.",
+     "follow_ups": [
+      {
+       "question": "What does the slope mean in plain words?",
+       "answer": "How much the prediction changes for a one-unit increase in that feature, holding other features fixed."
+      }
+     ],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "basic",
+     "kind": "math",
+     "question": "Why do we minimise squared errors rather than plain errors?",
+     "answer": "Plain errors can cancel out (positive and negative), so their sum can be zero for a bad line. Squaring keeps every error positive, penalises large errors more, and gives a smooth, convex loss with a unique minimum and a closed-form solution.",
+     "interviewer_wants": "Cancellation, penalising big errors, and convexity.",
+     "follow_ups": [
+      {
+       "question": "What's a downside of squaring?",
+       "answer": "Outliers get huge weight. Mean absolute error or Huber loss are more robust."
+      }
+     ],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "basic",
+     "kind": "conceptual",
+     "question": "What do MSE and R² tell you?",
+     "answer": "MSE is the average squared residual, in squared units of the target; lower is better. R² is the share of the target's variance the model explains: 1 is perfect, 0 is no better than predicting the mean, and it can be negative for a model worse than the mean.",
+     "interviewer_wants": "Correct interpretation of both, including R²'s baseline.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "intermediate",
+     "kind": "math",
+     "question": "Derive the slope of simple linear regression.",
+     "answer": "Minimise Σ(yᵢ − w·xᵢ − b)². Setting the derivative with respect to b to zero gives b = ȳ − w·x̄. Substituting and setting the derivative with respect to w to zero gives w = Σ(xᵢ − x̄)(yᵢ − ȳ) / Σ(xᵢ − x̄)², i.e. cov(x, y) / var(x).",
+     "interviewer_wants": "Partial derivatives set to zero and the covariance over variance result.",
+     "follow_ups": [
+      {
+       "question": "What's the matrix form?",
+       "answer": "w = (XᵀX)⁻¹Xᵀy, the normal equation, with a column of ones for the intercept."
+      }
+     ],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "intermediate",
+     "kind": "conceptual",
+     "question": "What assumptions does linear regression make?",
+     "answer": "A linear relationship between features and target; independent errors; constant error variance (homoscedasticity); and, for confidence intervals and p-values, roughly normal errors. Strongly correlated features (multicollinearity) make individual coefficients unstable.",
+     "interviewer_wants": "Linearity, independence, homoscedasticity, normality for inference, and multicollinearity.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "intermediate",
+     "kind": "scenario",
+     "question": "When would you use gradient descent instead of the normal equation?",
+     "answer": "When there are many features (inverting XᵀX costs about O(d³)), very large datasets that don't fit in memory, or streaming data. Gradient descent and its stochastic variants scale; the normal equation is exact and fast for small problems.",
+     "interviewer_wants": "Computational cost reasoning, not just 'it's faster'.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "advanced",
+     "kind": "conceptual",
+     "question": "What are Ridge and Lasso, and when would you use them?",
+     "answer": "Both add a penalty to the loss to shrink weights and reduce overfitting. Ridge adds λΣw², shrinking all weights smoothly and helping with multicollinearity. Lasso adds λΣ|w|, which can drive some weights exactly to zero, doing feature selection. Elastic Net mixes both.",
+     "interviewer_wants": "L2 vs L1 penalties, shrinkage vs sparsity, and when each helps.",
+     "follow_ups": [
+      {
+       "question": "Why should features be scaled before regularising?",
+       "answer": "The penalty treats all weights equally, so features on larger scales would be penalised unfairly."
+      }
+     ],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "advanced",
+     "kind": "scenario",
+     "question": "Your residual plot shows a curve. What does it mean and what do you do?",
+     "answer": "The relationship isn't linear in the current features, so the model is systematically wrong in parts of the range. Add polynomial or transformed features (e.g. log), or use a non-linear model such as gradient-boosted trees.",
+     "interviewer_wants": "Reading residual plots and fixing non-linearity.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    }
+   ],
+   "takeaways": [
+    "ŷ = w·x + b, fitted by minimising mean squared error.",
+    "Slope = cov(x, y) / var(x) for one feature.",
+    "MSE measures error; R² measures explained variance against the mean baseline.",
+    "Outliers, non-linearity and multicollinearity are the classic pitfalls."
+   ]
+  },
+  "quiz": {
+   "questions": [
+    {
+     "difficulty": "easy",
+     "kind": "concept",
+     "prompt": "Linear regression predicts…",
+     "code": null,
+     "options": [
+      "A category",
+      "A continuous number",
+      "A cluster",
+      "A probability only"
+     ],
+     "answer": 1,
+     "explanation": "It's a regression method: the output is a number."
+    },
+    {
+     "difficulty": "easy",
+     "kind": "math",
+     "prompt": "In ŷ = 0.25x + 4, what happens to ŷ when x goes up by 10?",
+     "code": null,
+     "options": [
+      "It rises by 0.25",
+      "It rises by 2.5",
+      "It rises by 4",
+      "It doubles"
+     ],
+     "answer": 1,
+     "explanation": "The slope is 0.25 per unit, so 10 units add 2.5."
+    },
+    {
+     "difficulty": "medium",
+     "kind": "concept",
+     "prompt": "Why square the residuals in MSE?",
+     "code": null,
+     "options": [
+      "To make the numbers smaller",
+      "So errors can't cancel out and big errors count more",
+      "Because it's faster to compute",
+      "To ignore outliers"
+     ],
+     "answer": 1,
+     "explanation": "Squares are positive and grow quickly with the size of the error."
+    },
+    {
+     "difficulty": "medium",
+     "kind": "math",
+     "prompt": "An R² of 0 means the model…",
+     "code": null,
+     "options": [
+      "Is perfect",
+      "Does no better than always predicting the mean",
+      "Has zero error",
+      "Is impossible to compute"
+     ],
+     "answer": 1,
+     "explanation": "R² compares your model with the mean-only baseline."
+    },
+    {
+     "difficulty": "medium",
+     "kind": "scenario",
+     "prompt": "You add one extreme outlier to your data. The least-squares line…",
+     "code": null,
+     "options": [
+      "Doesn't change",
+      "Moves toward the outlier",
+      "Moves away from the outlier",
+      "Becomes horizontal"
+     ],
+     "answer": 1,
+     "explanation": "Squared error gives the outlier a large pull on the fit."
+    },
+    {
+     "difficulty": "hard",
+     "kind": "code",
+     "prompt": "Why does this raise an error?",
+     "code": "model = LinearRegression()\nmodel.fit(size, rent)  # size is a 1-D array",
+     "options": [
+      "rent must be 2-D",
+      "X must be 2-D: use size.reshape(-1, 1)",
+      "LinearRegression needs a learning rate",
+      "fit expects lists, not arrays"
+     ],
+     "answer": 1,
+     "explanation": "scikit-learn expects features as a 2-D array of shape (samples, features)."
+    },
+    {
+     "difficulty": "hard",
+     "kind": "concept",
+     "prompt": "Which penalty can set some weights exactly to zero?",
+     "code": null,
+     "options": [
+      "Ridge (L2)",
+      "Lasso (L1)",
+      "Neither",
+      "Both equally"
+     ],
+     "answer": 1,
+     "explanation": "The L1 penalty's corners drive some coefficients to exactly zero."
+    }
+   ]
+  },
+  "revision": {
+   "definitions": [
+    {
+     "term": "Linear regression",
+     "meaning": "Predicts a number as a weighted sum of features plus a bias."
+    },
+    {
+     "term": "Residual",
+     "meaning": "y − ŷ: how far a prediction misses."
+    },
+    {
+     "term": "MSE",
+     "meaning": "Average of squared residuals; lower is better."
+    },
+    {
+     "term": "R²",
+     "meaning": "Share of variance explained; 1 perfect, 0 = mean baseline."
+    },
+    {
+     "term": "Regularisation",
+     "meaning": "A penalty on weight size to reduce overfitting."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Model",
+     "expression": "ŷ = w·x + b",
+     "meaning": "Slope w, intercept b."
+    },
+    {
+     "name": "MSE",
+     "expression": "(1/n) Σ (yᵢ − ŷᵢ)²",
+     "meaning": "Mean squared error."
+    },
+    {
+     "name": "Slope",
+     "expression": "w = cov(x, y) / var(x)",
+     "meaning": "Least-squares slope for one feature."
+    },
+    {
+     "name": "Normal equation",
+     "expression": "w = (XᵀX)⁻¹Xᵀy",
+     "meaning": "Closed-form solution for many features."
+    }
+   ],
+   "comparison": {
+    "title": "Ridge vs Lasso",
+    "columns": [
+     "",
+     "Ridge (L2)",
+     "Lasso (L1)"
+    ],
+    "rows": [
+     [
+      "Penalty",
+      "λΣw²",
+      "λΣ|w|"
+     ],
+     [
+      "Effect",
+      "Shrinks all weights",
+      "Can zero some weights"
+     ],
+     [
+      "Good for",
+      "Correlated features",
+      "Feature selection"
+     ]
+    ]
+   },
+   "mistakes": [
+    "Extrapolating far beyond the data's range.",
+    "Ignoring outliers and curved residual patterns.",
+    "Regularising without scaling features."
+   ],
+   "confusions": [
+    {
+     "pair": "MSE vs R²",
+     "difference": "MSE is an error in squared units; R² is a unit-free share of explained variance."
+    }
+   ],
+   "takeaways": [
+    "Fit = minimise squared error.",
+    "Check residuals, not just one number.",
+    "Use Ridge/Lasso when overfitting or with many features."
+   ]
+  }
+ },
+ "deep-learning/neural-network-fundamentals": {
+  "lesson": {
+   "tagline": "Tiny calculators that team up to learn anything 🧠",
+   "minutes": 10,
+   "level": "beginner",
+   "cards": [
+    {
+     "kind": "hook",
+     "title": "Face unlock, voice notes, ChatGPT…",
+     "body": "All run on neural networks. Underneath the hype, each one is just layers of tiny calculators called **neurons**, passing numbers forward.",
+     "emoji": "📸",
+     "bullets": [],
+     "figure": "network",
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "tldr",
+     "title": "In one line",
+     "body": "Each neuron does a weighted sum + bias, squashes it with an activation, and passes it on. Training tunes all the weights so the final output is right.",
+     "emoji": "⚡",
+     "bullets": [],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "math",
+     "title": "One neuron",
+     "body": "Multiply each input by its weight, add them up with a bias, then apply an activation function.",
+     "emoji": "🔢",
+     "bullets": [],
+     "figure": "neuron",
+     "formula": "a = σ(w·x + b)",
+     "symbols": [
+      {
+       "symbol": "x",
+       "meaning": "inputs coming in"
+      },
+      {
+       "symbol": "w",
+       "meaning": "weights: how much each input matters"
+      },
+      {
+       "symbol": "b",
+       "meaning": "bias: shifts the threshold"
+      },
+      {
+       "symbol": "σ",
+       "meaning": "activation (adds non-linearity)"
+      },
+      {
+       "symbol": "a",
+       "meaning": "the neuron's output"
+      }
+     ],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "intuition",
+     "title": "Weights are volume knobs",
+     "body": "A big positive weight says 'this input matters, turn it up'. A negative weight says 'this input argues against'. Learning = finding the right knob settings.",
+     "emoji": "🎚️",
+     "bullets": [],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "steps",
+     "title": "Forward pass",
+     "body": "Data flows one way to make a prediction.",
+     "emoji": "➡️",
+     "bullets": [
+      "**Input layer**: the raw features",
+      "**Hidden layers**: neurons combine features into patterns",
+      "**Output layer**: the prediction (a probability, a class, a number)"
+     ],
+     "figure": "network",
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "steps",
+     "title": "How it learns",
+     "body": "The training loop, on repeat.",
+     "emoji": "🔁",
+     "bullets": [
+      "Forward pass → prediction",
+      "**Loss**: how wrong was it?",
+      "**Backpropagation**: chain rule finds each weight's share of the blame",
+      "**Gradient descent**: nudge every weight to reduce the loss"
+     ],
+     "figure": "loss_bowl",
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "example",
+     "title": "Why one neuron isn't enough",
+     "body": "XOR (true when exactly one input is on) can't be split by one straight line. Add a hidden layer and the network bends the boundary, solving it easily.",
+     "emoji": "❌",
+     "bullets": [],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "myth",
+     "title": "Myth vs fact",
+     "body": "The non-linearity is the whole point.",
+     "emoji": "🚩",
+     "bullets": [],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": "Stacking more layers always makes a network more powerful.",
+     "fact": "Without non-linear activations, any stack of layers collapses into one linear function. Depth only helps because of the activations in between."
+    },
+    {
+     "kind": "interview",
+     "title": "What interviewers listen for",
+     "body": "Mechanics first, buzzwords last.",
+     "emoji": "🎤",
+     "bullets": [
+      "Weighted sum + bias + activation",
+      "Forward pass vs backpropagation",
+      "Why non-linearity is essential",
+      "Counting parameters in a layer"
+     ],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "recap",
+     "title": "Recap",
+     "body": "Go train a tiny network in the playground.",
+     "emoji": "✅",
+     "bullets": [
+      "Neuron = σ(w·x + b)",
+      "Layers pass outputs forward",
+      "Backprop + gradient descent update the weights",
+      "Activations make depth useful"
+     ],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    }
+   ],
+   "key_terms": [
+    {
+     "term": "Neuron",
+     "meaning": "Weighted sum of inputs plus bias, through an activation."
+    },
+    {
+     "term": "Weight",
+     "meaning": "A learnable number scaling one input."
+    },
+    {
+     "term": "Bias",
+     "meaning": "A learnable offset added before the activation."
+    },
+    {
+     "term": "Forward pass",
+     "meaning": "Computing outputs layer by layer from the inputs."
+    },
+    {
+     "term": "Backpropagation",
+     "meaning": "Using the chain rule to get every weight's gradient."
+    },
+    {
+     "term": "Epoch",
+     "meaning": "One pass over the whole training set."
+    }
+   ]
+  },
+  "playground": {
+   "widget": "neural_network",
+   "title": "Train a tiny brain 🧠",
+   "intro": "A 2-input network with one hidden layer, learning a pattern you pick. Watch the weights (lines) change colour and thickness, the loss fall, and the decision map take shape.",
+   "tasks": [
+    {
+     "prompt": "Pick the XOR pattern and set hidden neurons to 1. Press Train.",
+     "hint": "Use the hidden-neurons slider, then Train.",
+     "insight": "With one hidden neuron the boundary is basically a single line, and XOR needs two. The loss gets stuck."
+    },
+    {
+     "prompt": "Now give it 4 hidden neurons and train again.",
+     "hint": "Reset, set 4 neurons, Train.",
+     "insight": "More hidden neurons let the network combine several lines into a curved boundary. XOR gets solved."
+    },
+    {
+     "prompt": "Switch the activation to Linear and train on XOR.",
+     "hint": "Use the Activation buttons: Linear.",
+     "insight": "No matter how many neurons, a linear network can only draw a straight line. Non-linearity is what makes depth matter."
+    },
+    {
+     "prompt": "Set the learning rate very high and train.",
+     "hint": "Drag the learning-rate slider to the right.",
+     "insight": "The loss jumps around instead of falling smoothly: steps that are too big overshoot the minimum."
+    }
+   ]
+  },
+  "video": {
+   "title": "Neural networks in 3 minutes",
+   "scenes": [
+    {
+     "title": "It's all neurons",
+     "narration": "Face unlock, translation, chatbots. All neural networks. Strip away the hype and you find layers of simple units called neurons, each passing a number to the next layer.",
+     "on_screen": "Layers of tiny calculators",
+     "figure": "network",
+     "seconds": 25
+    },
+    {
+     "title": "Inside one neuron",
+     "narration": "A neuron multiplies each input by a weight, adds them up with a bias, and passes the result through an activation function. Weights say how much each input matters. The bias shifts the threshold.",
+     "on_screen": "a = σ(w·x + b)",
+     "figure": "neuron",
+     "seconds": 30
+    },
+    {
+     "title": "The forward pass",
+     "narration": "Data enters the input layer, flows through hidden layers that build up patterns, and reaches the output layer, which makes the prediction. That one-way trip is the forward pass.",
+     "on_screen": "Input → hidden → output",
+     "figure": "network",
+     "seconds": 30
+    },
+    {
+     "title": "Learning from mistakes",
+     "narration": "We measure how wrong the prediction is with a loss. Backpropagation uses the chain rule to work out how much each weight contributed, and gradient descent nudges every weight to make the loss smaller. Repeat thousands of times.",
+     "on_screen": "Loss → backprop → update",
+     "figure": "loss_bowl",
+     "seconds": 35
+    },
+    {
+     "title": "Why activations matter",
+     "narration": "Without activation functions, stacking layers achieves nothing: the whole network collapses into one linear function. Activations let networks bend their decision boundaries, which is how they solve problems like XOR.",
+     "on_screen": "No non-linearity = just a line",
+     "figure": "activation_curves",
+     "seconds": 30
+    },
+    {
+     "title": "Interview takeaway",
+     "narration": "In interviews, explain the neuron equation, the forward pass, how backpropagation and gradient descent train the weights, and why non-linear activations are essential. Bonus points for counting the parameters in a layer.",
+     "on_screen": "Sum, squash, pass forward, learn backward",
+     "figure": null,
+     "seconds": 25
+    }
+   ]
+  },
+  "python": {
+   "packages": [
+    "numpy"
+   ],
+   "dataset": "The four XOR examples: inputs (0,0), (0,1), (1,0), (1,1) with outputs 0, 1, 1, 0. Everything is built from scratch with NumPy.",
+   "steps": [
+    {
+     "title": "One neuron by hand",
+     "explanation": "Weighted sum plus bias, then the sigmoid activation squashes it between 0 and 1.",
+     "code": "import numpy as np\n\ndef sigmoid(z):\n    return 1 / (1 + np.exp(-z))\n\n# One neuron: weighted sum, then activation.\nx = np.array([1.0, 2.0])\nw = np.array([0.5, -0.25])\nb = 0.1\nz = x @ w + b\nprint(f\"z = {z:.2f}, output = {sigmoid(z):.3f}\")"
+    },
+    {
+     "title": "A network for XOR",
+     "explanation": "2 inputs → 4 hidden neurons (tanh) → 1 output (sigmoid). Weights start random; biases start at zero.",
+     "code": "# XOR: no single straight line separates it, so we need a hidden layer.\nX = np.array([[0, 0], [0, 1], [1, 0], [1, 1]], dtype=float)\ny = np.array([[0], [1], [1], [0]], dtype=float)\n\nrng = np.random.default_rng(1)\nW1, b1 = rng.normal(0, 1, (2, 4)), np.zeros((1, 4))\nW2, b2 = rng.normal(0, 1, (4, 1)), np.zeros((1, 1))\n\ndef forward(X):\n    h = np.tanh(X @ W1 + b1)          # hidden layer\n    out = sigmoid(h @ W2 + b2)        # output layer\n    return h, out"
+    },
+    {
+     "title": "Train with backpropagation",
+     "explanation": "Forward pass, mean squared error, then the chain rule gives each weight's gradient. Every step moves the weights a little downhill (learning rate 1.0).",
+     "code": "for epoch in range(3001):\n    h, out = forward(X)\n    loss = np.mean((out - y) ** 2)\n    d_out = 2 * (out - y) / len(X) * out * (1 - out)\n    d_h = d_out @ W2.T * (1 - h ** 2)\n    W2 -= 1.0 * h.T @ d_out\n    b2 -= 1.0 * d_out.sum(axis=0, keepdims=True)\n    W1 -= 1.0 * X.T @ d_h\n    b1 -= 1.0 * d_h.sum(axis=0, keepdims=True)\n    if epoch % 1000 == 0:\n        print(f\"epoch {epoch:>4}  loss {loss:.3f}\")"
+    },
+    {
+     "title": "Check the predictions",
+     "explanation": "Outputs close to 0, 1, 1, 0 mean the network learned XOR.",
+     "code": "_, out = forward(X)\nprint(\"XOR predictions:\", out.round(2).ravel().tolist())"
+    }
+   ],
+   "expected_output": "z = 0.10, output = 0.525\nepoch    0  loss 0.240\nepoch 1000  loss 0.001\nepoch 2000  loss 0.000\nepoch 3000  loss 0.000\nXOR predictions: [0.01, 0.98, 0.98, 0.02]",
+   "mistakes": [
+    "Initialising all weights to the same value, so every neuron learns the same thing.",
+    "Forgetting the activation's derivative in backpropagation.",
+    "Mixing up matrix shapes: check (samples, features) at every layer.",
+    "Using a learning rate so large the loss bounces or explodes."
+   ],
+   "applications": [
+    "Image and speech recognition",
+    "Recommendation and ranking models",
+    "The building block behind transformers and LLMs"
+   ]
+  },
+  "interview": {
+   "questions": [
+    {
+     "level": "basic",
+     "kind": "conceptual",
+     "question": "What does a single neuron compute?",
+     "answer": "A weighted sum of its inputs plus a bias, passed through an activation function: a = σ(w·x + b). The weights and bias are learned; the activation adds non-linearity.",
+     "interviewer_wants": "The formula and the role of weights, bias and activation.",
+     "follow_ups": [
+      {
+       "question": "What does the bias do?",
+       "answer": "It shifts the activation's input, letting the neuron fire even when all inputs are zero, like the intercept in a line."
+      }
+     ],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "basic",
+     "kind": "conceptual",
+     "question": "What's the difference between the forward pass and backpropagation?",
+     "answer": "The forward pass computes predictions by passing inputs through the layers. Backpropagation goes the other way: it applies the chain rule from the loss back through the layers to compute the gradient of the loss with respect to every weight. An optimiser then uses those gradients to update the weights.",
+     "interviewer_wants": "Direction of each pass and that backprop computes gradients, while the optimiser updates.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "intermediate",
+     "kind": "conceptual",
+     "question": "Why do neural networks need non-linear activation functions?",
+     "answer": "A composition of linear layers is itself linear: W2(W1x + b1) + b2 = Wx + b. So without non-linear activations a deep network is no more expressive than a single linear model and can't learn patterns like XOR. Non-linearities let networks approximate complex functions.",
+     "interviewer_wants": "The collapse-to-linear argument and an example like XOR.",
+     "follow_ups": [
+      {
+       "question": "What does the universal approximation theorem say?",
+       "answer": "A network with one hidden layer and enough neurons can approximate any continuous function on a bounded region to any accuracy; it says nothing about how easy that is to learn."
+      }
+     ],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "intermediate",
+     "kind": "math",
+     "question": "How many parameters does a dense layer from 128 inputs to 64 outputs have?",
+     "answer": "128 × 64 weights plus 64 biases = 8,192 + 64 = 8,256 parameters.",
+     "interviewer_wants": "inputs × outputs + outputs, done quickly.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "intermediate",
+     "kind": "scenario",
+     "question": "What happens if you initialise all weights to zero?",
+     "answer": "Every neuron in a layer computes the same output and receives the same gradient, so they stay identical forever (the symmetry problem). Use small random initialisation, for example Xavier/Glorot for tanh or He initialisation for ReLU.",
+     "interviewer_wants": "Symmetry breaking and named initialisation schemes.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "advanced",
+     "kind": "math",
+     "question": "Walk through backpropagation for one hidden layer.",
+     "answer": "Forward: h = f(XW1 + b1), ŷ = g(hW2 + b2), loss L. Backward: compute δ_out = ∂L/∂ŷ ⊙ g′, then ∂L/∂W2 = hᵀδ_out and ∂L/∂b2 = Σδ_out. Propagate: δ_h = δ_out W2ᵀ ⊙ f′, then ∂L/∂W1 = Xᵀδ_h and ∂L/∂b1 = Σδ_h. Each step is the chain rule, reusing values stored in the forward pass.",
+     "interviewer_wants": "Correct chain-rule ordering, the element-wise activation derivatives, and reuse of forward values.",
+     "follow_ups": [
+      {
+       "question": "Why is backprop efficient?",
+       "answer": "It reuses intermediate results, so computing all gradients costs about as much as one forward pass, instead of one pass per weight."
+      }
+     ],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "advanced",
+     "kind": "practical",
+     "question": "Your network's training loss isn't decreasing at all. What do you check?",
+     "answer": "Overfit a tiny batch first; if that fails, there's a bug. Check the learning rate (too high or too low), weight initialisation, that inputs are normalised, the loss and activation pairing (e.g. sigmoid output with binary cross-entropy), gradients for NaNs or zeros, dead ReLUs, and that labels line up with inputs.",
+     "interviewer_wants": "A systematic debugging order, starting with overfitting a small batch.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    }
+   ],
+   "takeaways": [
+    "Neuron = activation(weighted sum + bias).",
+    "Forward pass predicts; backprop computes gradients; the optimiser updates weights.",
+    "Non-linear activations are what make depth useful.",
+    "Dense layer parameters = inputs × outputs + outputs."
+   ]
+  },
+  "quiz": {
+   "questions": [
+    {
+     "difficulty": "easy",
+     "kind": "concept",
+     "prompt": "What does a neuron compute before its activation?",
+     "code": null,
+     "options": [
+      "The maximum input",
+      "A weighted sum of inputs plus a bias",
+      "The average of its weights",
+      "A random number"
+     ],
+     "answer": 1,
+     "explanation": "z = w·x + b, then the activation is applied to z."
+    },
+    {
+     "difficulty": "easy",
+     "kind": "concept",
+     "prompt": "Which step computes how much each weight contributed to the error?",
+     "code": null,
+     "options": [
+      "Forward pass",
+      "Backpropagation",
+      "Data loading",
+      "Prediction"
+     ],
+     "answer": 1,
+     "explanation": "Backpropagation applies the chain rule from the loss back to every weight."
+    },
+    {
+     "difficulty": "medium",
+     "kind": "concept",
+     "prompt": "A 5-layer network uses no activation functions. It is equivalent to…",
+     "code": null,
+     "options": [
+      "A 5-times more powerful model",
+      "A single linear model",
+      "A decision tree",
+      "An unsupervised model"
+     ],
+     "answer": 1,
+     "explanation": "Linear layers compose into one linear function."
+    },
+    {
+     "difficulty": "medium",
+     "kind": "math",
+     "prompt": "How many parameters in a dense layer from 10 inputs to 3 outputs?",
+     "code": null,
+     "options": [
+      "13",
+      "30",
+      "33",
+      "300"
+     ],
+     "answer": 2,
+     "explanation": "10 × 3 weights + 3 biases = 33."
+    },
+    {
+     "difficulty": "medium",
+     "kind": "scenario",
+     "prompt": "Why can't a single neuron (no hidden layer) learn XOR?",
+     "code": null,
+     "options": [
+      "XOR has too many examples",
+      "XOR isn't linearly separable",
+      "Neurons can't output 0",
+      "XOR needs a bigger learning rate"
+     ],
+     "answer": 1,
+     "explanation": "No single straight line separates XOR's classes."
+    },
+    {
+     "difficulty": "hard",
+     "kind": "scenario",
+     "prompt": "All weights start at exactly 0. What happens in training?",
+     "code": null,
+     "options": [
+      "Training is faster",
+      "Neurons in a layer stay identical",
+      "The network overfits immediately",
+      "Nothing; it's the recommended setting"
+     ],
+     "answer": 1,
+     "explanation": "Same inputs and gradients keep them identical: symmetry is never broken."
+    },
+    {
+     "difficulty": "hard",
+     "kind": "code",
+     "prompt": "In this line, what does (1 - h ** 2) represent?",
+     "code": "d_h = d_out @ W2.T * (1 - h ** 2)",
+     "options": [
+      "The loss",
+      "The derivative of tanh at the hidden layer",
+      "The learning rate",
+      "A regularisation term"
+     ],
+     "answer": 1,
+     "explanation": "d/dz tanh(z) = 1 − tanh²(z), and h = tanh(z)."
+    }
+   ]
+  },
+  "revision": {
+   "definitions": [
+    {
+     "term": "Neuron",
+     "meaning": "Computes σ(w·x + b)."
+    },
+    {
+     "term": "Hidden layer",
+     "meaning": "Neurons between input and output that build features."
+    },
+    {
+     "term": "Loss",
+     "meaning": "A number measuring how wrong predictions are."
+    },
+    {
+     "term": "Backpropagation",
+     "meaning": "Chain rule from the loss to every weight's gradient."
+    },
+    {
+     "term": "Epoch",
+     "meaning": "One full pass over the training data."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Neuron",
+     "expression": "a = σ(w·x + b)",
+     "meaning": "Weighted sum, bias, activation."
+    },
+    {
+     "name": "Layer",
+     "expression": "h = σ(XW + b)",
+     "meaning": "All neurons of a layer at once."
+    },
+    {
+     "name": "Update",
+     "expression": "w ← w − η·∂L/∂w",
+     "meaning": "Gradient descent step with learning rate η."
+    },
+    {
+     "name": "Dense params",
+     "expression": "inputs × outputs + outputs",
+     "meaning": "Weights plus biases."
+    }
+   ],
+   "comparison": {
+    "title": "Forward pass vs backpropagation",
+    "columns": [
+     "",
+     "Forward pass",
+     "Backpropagation"
+    ],
+    "rows": [
+     [
+      "Direction",
+      "Input → output",
+      "Loss → input"
+     ],
+     [
+      "Computes",
+      "Predictions",
+      "Gradients"
+     ],
+     [
+      "Uses",
+      "Weights and activations",
+      "Chain rule + stored forward values"
+     ]
+    ]
+   },
+   "mistakes": [
+    "Zero (symmetric) weight initialisation.",
+    "Dropping activations and expecting depth to help.",
+    "Shape mismatches between layers."
+   ],
+   "confusions": [
+    {
+     "pair": "Backprop vs gradient descent",
+     "difference": "Backprop computes gradients; gradient descent uses them to update weights."
+    },
+    {
+     "pair": "Epoch vs iteration",
+     "difference": "Epoch = full dataset pass; iteration = one batch update."
+    }
+   ],
+   "takeaways": [
+    "σ(w·x + b) is the atom of deep learning.",
+    "Non-linearity makes layers worth stacking.",
+    "Training = forward, loss, backprop, update, repeat."
+   ]
+  }
+ },
+ "deep-learning/activation-functions": {
+  "lesson": {
+   "tagline": "The little bend that makes deep learning work 〰️",
+   "minutes": 8,
+   "level": "beginner",
+   "cards": [
+    {
+     "kind": "hook",
+     "title": "Straight lines can't draw faces",
+     "body": "Stack a hundred linear layers and you still get… a straight line. **Activation functions** add the bends that let networks recognise faces, voices and text.",
+     "emoji": "🎛️",
+     "bullets": [],
+     "figure": "activation_curves",
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "tldr",
+     "title": "In one line",
+     "body": "After each weighted sum, an activation squashes or clips the value. That non-linearity is what lets layers learn complex patterns.",
+     "emoji": "⚡",
+     "bullets": [],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "example",
+     "title": "Meet the line-up",
+     "body": "The ones you'll be asked about.",
+     "emoji": "📈",
+     "bullets": [
+      "**Sigmoid**: 0 to 1, great for a yes/no probability",
+      "**Tanh**: −1 to 1, zero-centred",
+      "**ReLU**: max(0, z), the default for hidden layers",
+      "**Leaky ReLU / GELU**: ReLU's smoother, never-fully-dead cousins",
+      "**Softmax**: turns scores into probabilities that sum to 1"
+     ],
+     "figure": "activation_curves",
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "math",
+     "title": "The two classics",
+     "body": "Sigmoid squashes everything into (0, 1). ReLU keeps positives and zeroes out negatives: dirt cheap to compute.",
+     "emoji": "🧮",
+     "bullets": [],
+     "figure": null,
+     "formula": "σ(z) = 1 / (1 + e⁻ᶻ)    ReLU(z) = max(0, z)",
+     "symbols": [
+      {
+       "symbol": "z",
+       "meaning": "the neuron's weighted sum w·x + b"
+      },
+      {
+       "symbol": "e",
+       "meaning": "Euler's number, about 2.718"
+      }
+     ],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "intuition",
+     "title": "The vanishing gradient",
+     "body": "Sigmoid's slope is at most **0.25**. Backprop multiplies one slope per layer, so 10 layers can shrink the signal by about a million times. Early layers barely learn.",
+     "emoji": "🫥",
+     "bullets": [],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "example",
+     "title": "Why ReLU won",
+     "body": "ReLU's slope is exactly 1 for positive inputs, so gradients pass through deep stacks without shrinking. It's also just a max, so it's fast.",
+     "emoji": "💡",
+     "bullets": [],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "steps",
+     "title": "Which one where?",
+     "body": "A cheat code for real projects.",
+     "emoji": "🧭",
+     "bullets": [
+      "Hidden layers → ReLU (or GELU in transformers)",
+      "Binary output → sigmoid",
+      "Multi-class output → softmax",
+      "Regression output → no activation (linear)"
+     ],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "myth",
+     "title": "Myth vs fact",
+     "body": "ReLU has one famous failure mode.",
+     "emoji": "🚩",
+     "bullets": [],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": "ReLU neurons can always recover during training.",
+     "fact": "If a ReLU neuron's input stays negative, its gradient is 0 and it may never update again: a **dying ReLU**. Leaky ReLU keeps a small slope to prevent this."
+    },
+    {
+     "kind": "interview",
+     "title": "What interviewers listen for",
+     "body": "Trade-offs, not definitions.",
+     "emoji": "🎤",
+     "bullets": [
+      "Why non-linearity is needed at all",
+      "Vanishing gradients with sigmoid/tanh",
+      "Dying ReLU and how Leaky ReLU helps",
+      "Matching output activations to the task"
+     ],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "recap",
+     "title": "Recap",
+     "body": "Go compare the curves and their slopes in the playground.",
+     "emoji": "✅",
+     "bullets": [
+      "Activations add non-linearity",
+      "Sigmoid/tanh saturate → vanishing gradients",
+      "ReLU is the hidden-layer default",
+      "Output activation depends on the task"
+     ],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    }
+   ],
+   "key_terms": [
+    {
+     "term": "Activation function",
+     "meaning": "A non-linear function applied to a neuron's sum."
+    },
+    {
+     "term": "Saturation",
+     "meaning": "Flat regions where the slope is near zero."
+    },
+    {
+     "term": "Vanishing gradient",
+     "meaning": "Gradients shrinking as they flow back through layers."
+    },
+    {
+     "term": "Dying ReLU",
+     "meaning": "A ReLU neuron stuck outputting 0 with zero gradient."
+    },
+    {
+     "term": "Softmax",
+     "meaning": "Turns a vector of scores into probabilities summing to 1."
+    }
+   ]
+  },
+  "playground": {
+   "widget": "activation_functions",
+   "title": "Bend the line 〰️",
+   "intro": "Compare activation functions and their slopes (derivatives). Move z to see the output and the gradient, then stack layers to watch gradients vanish.",
+   "tasks": [
+    {
+     "prompt": "Pick Sigmoid and slide z to 6.",
+     "hint": "Use the z slider.",
+     "insight": "The output is stuck near 1 and the slope is almost 0. Saturated neurons barely pass any gradient back."
+    },
+    {
+     "prompt": "Switch to ReLU and slide z from −3 to 3.",
+     "hint": "Watch the slope readout.",
+     "insight": "The slope is 0 for negatives and exactly 1 for positives: no shrinking for active neurons."
+    },
+    {
+     "prompt": "Set layers to 10 and compare Sigmoid with ReLU in the gradient bar.",
+     "hint": "Use the layers slider under the chart.",
+     "insight": "Sigmoid's gradient shrinks to about one millionth (0.25¹⁰). That's the vanishing gradient problem in one picture."
+    },
+    {
+     "prompt": "Compare Leaky ReLU and ReLU at z = −2.",
+     "hint": "Switch between them with z fixed.",
+     "insight": "Leaky ReLU keeps a small slope for negatives, so the neuron can still learn instead of dying."
+    }
+   ]
+  },
+  "video": {
+   "title": "Activation functions in 3 minutes",
+   "scenes": [
+    {
+     "title": "The missing bend",
+     "narration": "Stack as many linear layers as you like and you still get a straight line. Activation functions add a bend after every layer, and those bends are what let neural networks learn real-world patterns.",
+     "on_screen": "No activation = still a straight line",
+     "figure": "activation_curves",
+     "seconds": 25
+    },
+    {
+     "title": "Sigmoid and tanh",
+     "narration": "Sigmoid squashes any number into the range zero to one, perfect for a probability. Tanh does the same between minus one and one, and it's centred on zero, which often trains a little better in hidden layers.",
+     "on_screen": "Squash into (0, 1) or (−1, 1)",
+     "figure": null,
+     "seconds": 30
+    },
+    {
+     "title": "The vanishing gradient",
+     "narration": "Here's the catch. Sigmoid's slope is never more than a quarter. Backpropagation multiplies one slope per layer, so through ten layers the gradient can shrink a million times. The early layers stop learning.",
+     "on_screen": "0.25 × 0.25 × 0.25 …",
+     "figure": null,
+     "seconds": 30
+    },
+    {
+     "title": "Enter ReLU",
+     "narration": "ReLU keeps positive values and zeroes out negatives. Its slope is exactly one when active, so gradients flow through deep networks. It's also just a max, so it's fast. That's why it's the default for hidden layers.",
+     "on_screen": "ReLU(z) = max(0, z)",
+     "figure": "activation_curves",
+     "seconds": 35
+    },
+    {
+     "title": "Dying ReLU and friends",
+     "narration": "If a ReLU neuron only ever sees negative inputs, it outputs zero, gets zero gradient and can die. Leaky ReLU keeps a small slope for negatives. GELU, a smooth curve, is the favourite inside transformers.",
+     "on_screen": "Leaky ReLU · GELU",
+     "figure": null,
+     "seconds": 30
+    },
+    {
+     "title": "Interview takeaway",
+     "narration": "Remember the map: ReLU or GELU in hidden layers, sigmoid for a binary output, softmax for multiple classes, and no activation for regression. Then explain vanishing gradients and dying ReLUs, and you're set.",
+     "on_screen": "Hidden: ReLU · Binary: sigmoid · Classes: softmax",
+     "figure": null,
+     "seconds": 25
+    }
+   ]
+  },
+  "python": {
+   "packages": [
+    "numpy"
+   ],
+   "dataset": "Five sample inputs z = −3, −1, 0, 1, 3 and a small vector of class scores for softmax. No dataset needed: we compare the functions directly.",
+   "steps": [
+    {
+     "title": "Define the activations",
+     "explanation": "Each is one line of NumPy. GELU uses the common tanh approximation.",
+     "code": "import numpy as np\n\ndef sigmoid(z):\n    return 1 / (1 + np.exp(-z))\n\ndef relu(z):\n    return np.maximum(0, z)\n\ndef leaky_relu(z, slope=0.01):\n    return np.where(z > 0, z, slope * z)\n\ndef gelu(z):\n    return 0.5 * z * (1 + np.tanh(np.sqrt(2 / np.pi) * (z + 0.044715 * z ** 3)))"
+    },
+    {
+     "title": "Compare outputs",
+     "explanation": "Same inputs, very different shapes: squashing, clipping or smoothing.",
+     "code": "z = np.array([-3.0, -1.0, 0.0, 1.0, 3.0])\nprint(\"z         \", z.tolist())\nprint(\"sigmoid   \", sigmoid(z).round(3).tolist())\nprint(\"tanh      \", np.tanh(z).round(3).tolist())\nprint(\"relu      \", relu(z).tolist())\nprint(\"leaky_relu\", leaky_relu(z).round(3).tolist())\nprint(\"gelu      \", gelu(z).round(3).tolist())"
+    },
+    {
+     "title": "Compare gradients",
+     "explanation": "σ′(z) = σ(z)(1 − σ(z)) peaks at 0.25; ReLU's slope is 0 or 1.",
+     "code": "sigmoid_grad = sigmoid(z) * (1 - sigmoid(z))\nrelu_grad = (z > 0).astype(float)\nprint(\"sigmoid'  \", sigmoid_grad.round(3).tolist())\nprint(\"relu'     \", relu_grad.tolist())"
+    },
+    {
+     "title": "Watch gradients vanish",
+     "explanation": "Backprop multiplies one slope per layer. Even sigmoid's best case (0.25) collapses fast.",
+     "code": "# The vanishing gradient: backprop multiplies one derivative per layer.\nfor layers in (2, 5, 10):\n    print(f\"{layers:>2} layers  sigmoid at best: {0.25 ** layers:.2e}   relu (active): {1.0 ** layers:.0f}\")"
+    },
+    {
+     "title": "Softmax for the output layer",
+     "explanation": "Turns raw scores into probabilities that add up to 1.",
+     "code": "logits = np.array([2.0, 1.0, 0.1])\nsoftmax = np.exp(logits) / np.exp(logits).sum()\nprint(\"softmax   \", softmax.round(3).tolist(), \"sum =\", round(softmax.sum(), 3))"
+    }
+   ],
+   "expected_output": "z          [-3.0, -1.0, 0.0, 1.0, 3.0]\nsigmoid    [0.047, 0.269, 0.5, 0.731, 0.953]\ntanh       [-0.995, -0.762, 0.0, 0.762, 0.995]\nrelu       [0.0, 0.0, 0.0, 1.0, 3.0]\nleaky_relu [-0.03, -0.01, 0.0, 1.0, 3.0]\ngelu       [-0.004, -0.159, 0.0, 0.841, 2.996]\nsigmoid'   [0.045, 0.197, 0.25, 0.197, 0.045]\nrelu'      [0.0, 0.0, 0.0, 1.0, 1.0]\n 2 layers  sigmoid at best: 6.25e-02   relu (active): 1\n 5 layers  sigmoid at best: 9.77e-04   relu (active): 1\n10 layers  sigmoid at best: 9.54e-07   relu (active): 1\nsoftmax    [0.659, 0.242, 0.099] sum = 1.0",
+   "mistakes": [
+    "Using sigmoid in every hidden layer of a deep network (vanishing gradients).",
+    "Putting ReLU on a regression output, so negative predictions become impossible.",
+    "Applying softmax and then a loss that expects raw logits (double softmax).",
+    "Computing softmax without subtracting the max, which can overflow."
+   ],
+   "applications": [
+    "ReLU/GELU in almost every modern hidden layer",
+    "Sigmoid outputs for binary classifiers and gates in LSTMs",
+    "Softmax outputs for multi-class classifiers and attention weights"
+   ]
+  },
+  "interview": {
+   "questions": [
+    {
+     "level": "basic",
+     "kind": "conceptual",
+     "question": "What is an activation function and why do we need one?",
+     "answer": "A non-linear function applied to each neuron's weighted sum. Without it, stacked layers collapse into one linear transformation, so the network couldn't model non-linear patterns. Activations give networks their expressive power.",
+     "interviewer_wants": "Non-linearity, and the collapse-to-linear argument.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "basic",
+     "kind": "conceptual",
+     "question": "Compare sigmoid, tanh and ReLU.",
+     "answer": "Sigmoid outputs (0, 1), saturates at both ends, max slope 0.25, not zero-centred. Tanh outputs (−1, 1), zero-centred, max slope 1, still saturates. ReLU outputs max(0, z): cheap, no saturation for positives, slope 1 when active, but zero gradient for negatives (dying ReLU).",
+     "interviewer_wants": "Ranges, saturation, slopes, and one weakness of each.",
+     "follow_ups": [
+      {
+       "question": "Which would you use in hidden layers today?",
+       "answer": "ReLU or a variant (Leaky ReLU, GELU) by default; tanh/sigmoid mainly inside gates of recurrent units."
+      }
+     ],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "intermediate",
+     "kind": "math",
+     "question": "What is the derivative of the sigmoid, and why does it matter?",
+     "answer": "σ′(z) = σ(z)(1 − σ(z)). It peaks at 0.25 when z = 0 and approaches 0 for large |z|. Because backprop multiplies these derivatives layer by layer, deep sigmoid networks suffer vanishing gradients.",
+     "interviewer_wants": "The formula, its 0.25 maximum, and the link to vanishing gradients.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "intermediate",
+     "kind": "scenario",
+     "question": "Half the neurons in your ReLU network output 0 for every input. What happened and how do you fix it?",
+     "answer": "Dying ReLUs: their pre-activations became negative for all inputs (often after a large update from a high learning rate or bad initialisation), so their gradient is 0 and they stop learning. Fixes: lower the learning rate, use He initialisation, switch to Leaky ReLU, PReLU, ELU or GELU, or add batch normalisation.",
+     "interviewer_wants": "Diagnosis (zero gradient for negatives) plus several fixes.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "intermediate",
+     "kind": "practical",
+     "question": "Which activation would you use on the output layer for regression, binary classification and multi-class classification?",
+     "answer": "Regression: none (linear output). Binary: sigmoid with binary cross-entropy. Multi-class (one label): softmax with categorical cross-entropy. Multi-label: a sigmoid per class.",
+     "interviewer_wants": "Correct pairing of output activation and loss for each task.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "advanced",
+     "kind": "conceptual",
+     "question": "Why do transformers often use GELU instead of ReLU?",
+     "answer": "GELU, x·Φ(x), is smooth and lets small negative values through with small weight instead of cutting them to zero. That gives smoother gradients and has worked better empirically in models like BERT and GPT. Its cost is slightly more computation.",
+     "interviewer_wants": "Smoothness, non-zero handling of negatives, and that the choice is largely empirical.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "advanced",
+     "kind": "coding",
+     "question": "How do you compute softmax in a numerically stable way?",
+     "answer": "Subtract the maximum score before exponentiating: softmax(z) = exp(z − max(z)) / Σ exp(z − max(z)). It gives the same result mathematically but avoids overflow for large scores. Frameworks combine softmax with the log in the loss (log-softmax) for the same reason.",
+     "interviewer_wants": "The max-subtraction trick and why it's equivalent.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    }
+   ],
+   "takeaways": [
+    "Activations add the non-linearity that makes depth useful.",
+    "Sigmoid/tanh saturate; sigmoid's slope is at most 0.25 → vanishing gradients.",
+    "ReLU is the hidden-layer default; watch for dying ReLUs.",
+    "Pick the output activation for the task: linear, sigmoid or softmax."
+   ]
+  },
+  "quiz": {
+   "questions": [
+    {
+     "difficulty": "easy",
+     "kind": "concept",
+     "prompt": "What is the output range of the sigmoid function?",
+     "code": null,
+     "options": [
+      "−1 to 1",
+      "0 to 1",
+      "0 to infinity",
+      "Any real number"
+     ],
+     "answer": 1,
+     "explanation": "Sigmoid squashes any input into (0, 1)."
+    },
+    {
+     "difficulty": "easy",
+     "kind": "math",
+     "prompt": "ReLU(−4) = ?",
+     "code": null,
+     "options": [
+      "−4",
+      "0",
+      "4",
+      "0.01"
+     ],
+     "answer": 1,
+     "explanation": "ReLU(z) = max(0, z), so negatives become 0."
+    },
+    {
+     "difficulty": "medium",
+     "kind": "concept",
+     "prompt": "Why do deep sigmoid networks train slowly?",
+     "code": null,
+     "options": [
+      "Sigmoid is expensive to compute",
+      "Its gradients are small, and they shrink layer after layer",
+      "It outputs negative numbers",
+      "It can't be differentiated"
+     ],
+     "answer": 1,
+     "explanation": "Max slope 0.25 multiplied across layers → vanishing gradients."
+    },
+    {
+     "difficulty": "medium",
+     "kind": "scenario",
+     "prompt": "Output layer for classifying images into 10 classes?",
+     "code": null,
+     "options": [
+      "ReLU",
+      "Sigmoid",
+      "Softmax",
+      "No activation"
+     ],
+     "answer": 2,
+     "explanation": "Softmax gives a probability for each class, summing to 1."
+    },
+    {
+     "difficulty": "medium",
+     "kind": "scenario",
+     "prompt": "Output layer for predicting house prices?",
+     "code": null,
+     "options": [
+      "Softmax",
+      "Sigmoid",
+      "No activation (linear)",
+      "Tanh"
+     ],
+     "answer": 2,
+     "explanation": "Prices are unbounded numbers; a linear output doesn't restrict them."
+    },
+    {
+     "difficulty": "hard",
+     "kind": "math",
+     "prompt": "What is the maximum value of the sigmoid's derivative?",
+     "code": null,
+     "options": [
+      "1",
+      "0.5",
+      "0.25",
+      "0.1"
+     ],
+     "answer": 2,
+     "explanation": "σ′(0) = 0.5 × 0.5 = 0.25."
+    },
+    {
+     "difficulty": "hard",
+     "kind": "concept",
+     "prompt": "What problem does Leaky ReLU address?",
+     "code": null,
+     "options": [
+      "Exploding gradients",
+      "Dying ReLU neurons",
+      "Slow computation",
+      "Overfitting"
+     ],
+     "answer": 1,
+     "explanation": "A small negative slope keeps a gradient flowing for negative inputs."
+    }
+   ]
+  },
+  "revision": {
+   "definitions": [
+    {
+     "term": "Activation function",
+     "meaning": "Non-linear function applied after each weighted sum."
+    },
+    {
+     "term": "Saturation",
+     "meaning": "Flat regions with near-zero slope (sigmoid, tanh at the extremes)."
+    },
+    {
+     "term": "Vanishing gradient",
+     "meaning": "Gradients shrinking through many layers."
+    },
+    {
+     "term": "Dying ReLU",
+     "meaning": "A ReLU stuck at 0 with zero gradient."
+    },
+    {
+     "term": "Softmax",
+     "meaning": "Scores → probabilities that sum to 1."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Sigmoid",
+     "expression": "σ(z) = 1 / (1 + e⁻ᶻ)",
+     "meaning": "Range (0, 1)."
+    },
+    {
+     "name": "Sigmoid slope",
+     "expression": "σ′(z) = σ(z)(1 − σ(z))",
+     "meaning": "At most 0.25."
+    },
+    {
+     "name": "ReLU",
+     "expression": "max(0, z)",
+     "meaning": "Slope 0 or 1."
+    },
+    {
+     "name": "Softmax",
+     "expression": "eᶻⁱ / Σ eᶻʲ",
+     "meaning": "Subtract max(z) first for stability."
+    }
+   ],
+   "comparison": {
+    "title": "Activation cheat sheet",
+    "columns": [
+     "Function",
+     "Range",
+     "Best for",
+     "Watch out"
+    ],
+    "rows": [
+     [
+      "Sigmoid",
+      "(0, 1)",
+      "Binary output",
+      "Vanishing gradients"
+     ],
+     [
+      "Tanh",
+      "(−1, 1)",
+      "RNN gates, small nets",
+      "Saturates"
+     ],
+     [
+      "ReLU",
+      "[0, ∞)",
+      "Hidden layers",
+      "Dying ReLU"
+     ],
+     [
+      "Leaky ReLU",
+      "(−∞, ∞)",
+      "Hidden layers",
+      "Extra hyperparameter"
+     ],
+     [
+      "Softmax",
+      "(0, 1), sums to 1",
+      "Multi-class output",
+      "Overflow without max trick"
+     ]
+    ]
+   },
+   "mistakes": [
+    "Sigmoid in every hidden layer of a deep net.",
+    "ReLU on a regression output.",
+    "Softmax applied twice (model + loss)."
+   ],
+   "confusions": [
+    {
+     "pair": "Sigmoid vs softmax",
+     "difference": "Sigmoid: one independent probability per unit; softmax: probabilities across classes that sum to 1."
+    }
+   ],
+   "takeaways": [
+    "Non-linearity is non-negotiable.",
+    "ReLU/GELU inside, task-specific activation at the output.",
+    "Small slopes multiplied across layers = vanishing gradients."
+   ]
+  }
+ },
+ "deep-learning/optimizers": {
+  "lesson": {
+   "tagline": "Rolling downhill to the best weights ⛰️",
+   "minutes": 9,
+   "level": "beginner",
+   "cards": [
+    {
+     "kind": "hook",
+     "title": "Lost on a foggy mountain",
+     "body": "You can't see the valley, but you can feel the slope under your feet. Step downhill, repeat. That's **gradient descent**, and it's how almost every model learns.",
+     "emoji": "🌫️",
+     "bullets": [],
+     "figure": "loss_bowl",
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "tldr",
+     "title": "In one line",
+     "body": "Compute the slope of the loss (the gradient), take a small step the opposite way, repeat until the loss stops dropping.",
+     "emoji": "⚡",
+     "bullets": [],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "math",
+     "title": "The update rule",
+     "body": "Every weight moves against its gradient, scaled by the learning rate.",
+     "emoji": "🧮",
+     "bullets": [],
+     "figure": null,
+     "formula": "w ← w − η · ∇L(w)",
+     "symbols": [
+      {
+       "symbol": "w",
+       "meaning": "the model's weights"
+      },
+      {
+       "symbol": "η",
+       "meaning": "learning rate (step size)"
+      },
+      {
+       "symbol": "∇L(w)",
+       "meaning": "gradient: direction of steepest increase"
+      }
+     ],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "intuition",
+     "title": "Step size is everything",
+     "body": "Tiny steps take forever. Huge steps leap over the valley and bounce up the other side, or even explode. The **learning rate** is the most important knob you'll tune.",
+     "emoji": "👟",
+     "bullets": [],
+     "figure": "learning_rate",
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "example",
+     "title": "Batch, stochastic, mini-batch",
+     "body": "How much data per step?",
+     "emoji": "🎒",
+     "bullets": [
+      "**Batch GD**: all data per step, smooth but slow",
+      "**SGD**: one example per step, fast but noisy",
+      "**Mini-batch**: 32-512 examples, the practical sweet spot"
+     ],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "steps",
+     "title": "Smarter optimizers",
+     "body": "Upgrades that fix plain gradient descent's weak spots.",
+     "emoji": "🚀",
+     "bullets": [
+      "**Momentum**: remembers past steps, rolls through flat parts and zig-zags",
+      "**RMSProp**: shrinks steps for weights with consistently big gradients",
+      "**Adam**: momentum + per-weight adaptive steps, the go-to default"
+     ],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "example",
+     "title": "Stretched valleys",
+     "body": "When the loss is steep one way and flat the other, plain GD zig-zags. Momentum and Adam take a straighter path, reaching the bottom in far fewer steps.",
+     "emoji": "📉",
+     "bullets": [],
+     "figure": "loss_bowl",
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "myth",
+     "title": "Myth vs fact",
+     "body": "A common overclaim.",
+     "emoji": "🚩",
+     "bullets": [],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": "Adam always beats plain SGD.",
+     "fact": "Adam usually converges faster with little tuning, but well-tuned SGD with momentum often generalises as well or better, for example in many vision models."
+    },
+    {
+     "kind": "interview",
+     "title": "What interviewers listen for",
+     "body": "Intuition plus the math.",
+     "emoji": "🎤",
+     "bullets": [
+      "The update rule and what each symbol means",
+      "Effects of too small vs too large learning rates",
+      "Batch vs stochastic vs mini-batch",
+      "What momentum and Adam add"
+     ],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    },
+    {
+     "kind": "recap",
+     "title": "Recap",
+     "body": "Go roll a ball down the loss landscape in the playground.",
+     "emoji": "✅",
+     "bullets": [
+      "w ← w − η∇L(w)",
+      "Learning rate: too small = slow, too big = diverge",
+      "Mini-batches in practice",
+      "Momentum and Adam speed things up"
+     ],
+     "figure": null,
+     "formula": null,
+     "symbols": [],
+     "myth": null,
+     "fact": null
+    }
+   ],
+   "key_terms": [
+    {
+     "term": "Gradient",
+     "meaning": "Vector of partial derivatives; points uphill."
+    },
+    {
+     "term": "Learning rate (η)",
+     "meaning": "How big each update step is."
+    },
+    {
+     "term": "Mini-batch",
+     "meaning": "A small subset of data used for one update."
+    },
+    {
+     "term": "Momentum",
+     "meaning": "Running average of past gradients that smooths steps."
+    },
+    {
+     "term": "Adam",
+     "meaning": "Momentum plus adaptive per-weight step sizes."
+    },
+    {
+     "term": "Convergence",
+     "meaning": "When updates stop meaningfully reducing the loss."
+    }
+   ]
+  },
+  "playground": {
+   "widget": "gradient_descent",
+   "title": "Roll down the loss landscape ⛰️",
+   "intro": "The contour map is a loss surface; the centre is the minimum. Click to choose a start, pick an optimizer and learning rate, then step or play and watch the path.",
+   "tasks": [
+    {
+     "prompt": "Use plain GD with a small learning rate and press Play.",
+     "hint": "Learning rate around 0.01.",
+     "insight": "It heads the right way but crawls. Too-small steps waste time."
+    },
+    {
+     "prompt": "Raise the learning rate until the path starts zig-zagging.",
+     "hint": "Watch the steep direction of the stretched bowl.",
+     "insight": "Big steps overshoot across the steep direction. Push further and the loss explodes: divergence."
+    },
+    {
+     "prompt": "Switch to Momentum with the same start.",
+     "hint": "Use the Optimizer buttons: Momentum. Keep the same learning rate.",
+     "insight": "Momentum builds speed along the long, shallow valley where plain GD crawls. It swings wider across the steep walls, yet arrives in about half the steps."
+    },
+    {
+     "prompt": "Try Adam, then compare the step counts.",
+     "hint": "The steps-to-minimum counter updates for each run.",
+     "insight": "Adam scales each direction's step separately, taking a straighter path through stretched valleys."
+    }
+   ]
+  },
+  "video": {
+   "title": "Gradient descent & optimizers in 3 minutes",
+   "scenes": [
+    {
+     "title": "The foggy mountain",
+     "narration": "Training a model means finding weights with the lowest loss. Picture standing on a foggy mountain: you can't see the valley, but you can feel the slope. Step downhill, and repeat. That's gradient descent.",
+     "on_screen": "Feel the slope, step downhill",
+     "figure": "loss_bowl",
+     "seconds": 25
+    },
+    {
+     "title": "The update rule",
+     "narration": "The gradient points uphill, so we step the opposite way. Each weight moves by the learning rate times its gradient. Do it again and again, and the loss keeps dropping until it settles at a minimum.",
+     "on_screen": "w ← w − η·∇L(w)",
+     "figure": null,
+     "seconds": 30
+    },
+    {
+     "title": "The learning rate",
+     "narration": "The learning rate is the step size. Too small and training takes forever. Too big and you leap past the valley, bouncing higher each time until the loss explodes. Tuning it is the first thing to try when training misbehaves.",
+     "on_screen": "Too small: slow. Too big: boom.",
+     "figure": "learning_rate",
+     "seconds": 35
+    },
+    {
+     "title": "How much data per step",
+     "narration": "Using all the data per step is smooth but slow. One example per step, stochastic gradient descent, is fast but noisy. In practice we use mini-batches of a few dozen to a few hundred examples.",
+     "on_screen": "Batch · Stochastic · Mini-batch",
+     "figure": null,
+     "seconds": 25
+    },
+    {
+     "title": "Momentum and Adam",
+     "narration": "Momentum keeps a running average of past gradients, so it rolls through flat stretches and damps zig-zags. Adam adds a separate step size for each weight. On a stretched valley, both reach the bottom far sooner than plain gradient descent.",
+     "on_screen": "Remember the past, adapt each step",
+     "figure": "loss_bowl",
+     "seconds": 35
+    },
+    {
+     "title": "Interview takeaway",
+     "narration": "Know the update rule, what a bad learning rate looks like, why we use mini-batches, and what momentum and Adam add. And remember: Adam is a strong default, not a guaranteed winner.",
+     "on_screen": "Rule · rate · batch · optimizer",
+     "figure": null,
+     "seconds": 25
+    }
+   ]
+  },
+  "python": {
+   "packages": [
+    "numpy"
+   ],
+   "dataset": "No dataset: we optimise two simple loss functions, a one-weight parabola with its minimum at w = 3, and a stretched two-weight bowl.",
+   "steps": [
+    {
+     "title": "Gradient descent on a parabola",
+     "explanation": "loss(w) = (w − 3)² has gradient 2(w − 3). We try four learning rates for 20 steps each.",
+     "code": "import numpy as np\n\n# Loss with its lowest point at w = 3.\ndef loss(w):\n    return (w - 3) ** 2\n\ndef grad(w):\n    return 2 * (w - 3)\n\nfor lr in (0.01, 0.1, 0.9, 1.1):\n    w = 0.0\n    for _ in range(20):\n        w -= lr * grad(w)\n    print(f\"lr={lr:<4} after 20 steps: w = {w:10.3f}   loss = {loss(w):.3g}\")"
+    },
+    {
+     "title": "A stretched bowl",
+     "explanation": "Steep in one direction (50), shallow in the other (0.5). We count steps until the loss drops below 10⁻⁶.",
+     "code": "# A stretched bowl: steep in one direction, shallow in the other.\nA = np.array([50.0, 0.5])\n\ndef bowl_grad(p):\n    return 2 * A * p\n\ndef steps_to_converge(update, lr, max_steps=2000):\n    p, state = np.array([1.0, 1.0]), {}\n    for step in range(1, max_steps + 1):\n        p = update(p, bowl_grad(p), lr, state)\n        if np.sum(A * p ** 2) < 1e-6:\n            return step\n    return max_steps"
+    },
+    {
+     "title": "Three optimizers",
+     "explanation": "Plain GD, momentum (a running sum of gradients) and Adam (momentum plus per-weight scaling, with bias correction).",
+     "code": "def gd(p, g, lr, state):\n    return p - lr * g\n\ndef momentum(p, g, lr, state, beta=0.9):\n    state[\"v\"] = beta * state.get(\"v\", 0) + g\n    return p - lr * state[\"v\"]\n\ndef adam(p, g, lr, state, b1=0.9, b2=0.999, eps=1e-8):\n    state[\"t\"] = state.get(\"t\", 0) + 1\n    state[\"m\"] = b1 * state.get(\"m\", 0) + (1 - b1) * g\n    state[\"v\"] = b2 * state.get(\"v\", 0) + (1 - b2) * g ** 2\n    m_hat = state[\"m\"] / (1 - b1 ** state[\"t\"])\n    v_hat = state[\"v\"] / (1 - b2 ** state[\"t\"])\n    return p - lr * m_hat / (np.sqrt(v_hat) + eps)"
+    },
+    {
+     "title": "Race them",
+     "explanation": "Each optimizer uses a learning rate tuned for this bowl. Fewer steps is better.",
+     "code": "# Each optimizer uses a learning rate tuned for this bowl.\nfor name, update, lr in ((\"GD\", gd, 0.019), (\"Momentum\", momentum, 0.0185), (\"Adam\", adam, 0.27)):\n    print(f\"{name:<9} lr={lr:<5} steps to reach the minimum: {steps_to_converge(update, lr)}\")"
+    }
+   ],
+   "expected_output": "lr=0.01 after 20 steps: w =      0.997   loss = 4.01\nlr=0.1  after 20 steps: w =      2.965   loss = 0.0012\nlr=0.9  after 20 steps: w =      2.965   loss = 0.0012\nlr=1.1  after 20 steps: w =   -112.013   loss = 1.32e+04\nGD        lr=0.019 steps to reach the minimum: 343\nMomentum  lr=0.0185 steps to reach the minimum: 88\nAdam      lr=0.27  steps to reach the minimum: 36",
+   "mistakes": [
+    "Keeping the default learning rate without ever tuning it.",
+    "Forgetting to zero gradients between steps in frameworks like PyTorch.",
+    "Comparing optimizers without tuning each one's learning rate.",
+    "Reading lr = 0.9 converging here as 'big rates are fine': it zig-zags, and 1.1 explodes."
+   ],
+   "applications": [
+    "Training every neural network (SGD, Adam, AdamW)",
+    "Fitting linear and logistic regression on large data",
+    "Learning-rate schedules and warm-up in LLM training"
+   ]
+  },
+  "interview": {
+   "questions": [
+    {
+     "level": "basic",
+     "kind": "conceptual",
+     "question": "Explain gradient descent.",
+     "answer": "An iterative method to minimise a loss: compute the gradient of the loss with respect to the parameters, then update w ← w − η∇L(w), where η is the learning rate. Repeat until the loss stops decreasing. The gradient points uphill, so moving against it reduces the loss.",
+     "interviewer_wants": "The update rule, the role of the learning rate, and why the minus sign.",
+     "follow_ups": [
+      {
+       "question": "Does it always find the global minimum?",
+       "answer": "Only for convex losses (like linear regression's MSE). Neural network losses are non-convex, so it finds a good local minimum or saddle region, which is usually good enough."
+      }
+     ],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "basic",
+     "kind": "scenario",
+     "question": "What happens if the learning rate is too small or too large?",
+     "answer": "Too small: training is very slow and may stall on plateaus. Too large: updates overshoot the minimum, the loss oscillates or diverges to infinity/NaN. A learning-rate range test or a schedule (warm-up, decay) helps find a good value.",
+     "interviewer_wants": "Both failure modes and a practical way to choose the rate.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "intermediate",
+     "kind": "conceptual",
+     "question": "Compare batch, stochastic and mini-batch gradient descent.",
+     "answer": "Batch uses the whole dataset per update: accurate gradient, smooth progress, but slow and memory-heavy. SGD uses one example: cheap, noisy updates that can escape shallow minima but converge erratically. Mini-batch (e.g. 32-512 examples) balances the two and uses GPUs efficiently; it's the default.",
+     "interviewer_wants": "Trade-offs in noise, speed and memory, and why mini-batch wins in practice.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "intermediate",
+     "kind": "math",
+     "question": "How does momentum change the update?",
+     "answer": "It keeps a velocity v ← βv + ∇L(w) and updates w ← w − ηv, with β around 0.9. Consistent gradient directions accumulate speed while oscillating components cancel, so it moves faster along shallow valleys and damps zig-zags.",
+     "interviewer_wants": "The velocity equations and the intuition of accumulating consistent directions.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "intermediate",
+     "kind": "conceptual",
+     "question": "What does Adam do differently?",
+     "answer": "Adam tracks a moving average of gradients (first moment, like momentum) and of squared gradients (second moment). Each weight's step is scaled by the first moment divided by the square root of the second, so weights with large or noisy gradients take smaller steps. Bias correction fixes the averages being biased towards zero early on.",
+     "interviewer_wants": "Both moments, per-parameter adaptive steps, and bias correction.",
+     "follow_ups": [
+      {
+       "question": "What is AdamW?",
+       "answer": "Adam with decoupled weight decay: the decay is applied directly to the weights instead of through the gradient, which regularises more correctly with adaptive steps."
+      }
+     ],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "advanced",
+     "kind": "scenario",
+     "question": "Your training loss suddenly becomes NaN. What do you check?",
+     "answer": "Likely exploding values: lower the learning rate, add gradient clipping, check for log(0) or division by zero in the loss, use numerically stable functions (log-softmax), check inputs for NaNs or extreme values, and consider mixed-precision overflow (use loss scaling).",
+     "interviewer_wants": "Learning rate and gradient explosion first, then numerical stability causes.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    },
+    {
+     "level": "advanced",
+     "kind": "practical",
+     "question": "Why do we use learning-rate schedules like warm-up and cosine decay?",
+     "answer": "Warm-up starts with a small rate to avoid unstable early updates (Adam's statistics are noisy at first). Decay lowers the rate later so training settles into a minimum instead of bouncing around it. Cosine decay and step decay are common; LLM training typically uses warm-up then cosine decay.",
+     "interviewer_wants": "Why early and late training need different step sizes.",
+     "follow_ups": [],
+     "origin": "ai_generated",
+     "source_ref": null,
+     "asked_for_role": null
+    }
+   ],
+   "takeaways": [
+    "Update: w ← w − η∇L(w); the gradient points uphill.",
+    "Learning rate too small = slow, too large = oscillation or divergence.",
+    "Mini-batch SGD is the practical default.",
+    "Momentum smooths and speeds up; Adam adds per-weight adaptive steps."
+   ]
+  },
+  "quiz": {
+   "questions": [
+    {
+     "difficulty": "easy",
+     "kind": "concept",
+     "prompt": "Why does gradient descent step against the gradient?",
+     "code": null,
+     "options": [
+      "The gradient points toward the minimum",
+      "The gradient points uphill, so the opposite way goes downhill",
+      "To make the weights smaller",
+      "It's arbitrary"
+     ],
+     "answer": 1,
+     "explanation": "The gradient is the direction of steepest increase of the loss."
+    },
+    {
+     "difficulty": "easy",
+     "kind": "scenario",
+     "prompt": "The loss jumps around and grows each step. Most likely cause?",
+     "code": null,
+     "options": [
+      "Learning rate too small",
+      "Learning rate too large",
+      "Too much data",
+      "The model is too simple"
+     ],
+     "answer": 1,
+     "explanation": "Oversized steps overshoot the minimum and can diverge."
+    },
+    {
+     "difficulty": "medium",
+     "kind": "math",
+     "prompt": "w = 5, gradient = 4, learning rate = 0.5. After one step, w = ?",
+     "code": null,
+     "options": [
+      "3",
+      "7",
+      "4.5",
+      "1"
+     ],
+     "answer": 0,
+     "explanation": "5 − 0.5 × 4 = 3."
+    },
+    {
+     "difficulty": "medium",
+     "kind": "concept",
+     "prompt": "Mini-batch gradient descent uses…",
+     "code": null,
+     "options": [
+      "All examples per update",
+      "One example per update",
+      "A small subset of examples per update",
+      "No gradients"
+     ],
+     "answer": 2,
+     "explanation": "A mini-batch (e.g. 64 examples) balances accuracy and speed."
+    },
+    {
+     "difficulty": "medium",
+     "kind": "concept",
+     "prompt": "What does momentum accumulate?",
+     "code": null,
+     "options": [
+      "Past losses",
+      "A running average of past gradients",
+      "The learning rate",
+      "The number of epochs"
+     ],
+     "answer": 1,
+     "explanation": "The velocity term builds up consistent gradient directions."
+    },
+    {
+     "difficulty": "hard",
+     "kind": "concept",
+     "prompt": "What extra information does Adam track compared with momentum?",
+     "code": null,
+     "options": [
+      "The squared gradients (second moment)",
+      "The validation loss",
+      "The number of layers",
+      "Nothing extra"
+     ],
+     "answer": 0,
+     "explanation": "The second moment scales each weight's step size individually."
+    },
+    {
+     "difficulty": "hard",
+     "kind": "code",
+     "prompt": "With loss (w − 3)², which learning rate makes this loop diverge?",
+     "code": "for _ in range(20):\n    w -= lr * 2 * (w - 3)",
+     "options": [
+      "0.01",
+      "0.1",
+      "0.9",
+      "1.1"
+     ],
+     "answer": 3,
+     "explanation": "Each step multiplies the error by (1 − 2·lr); |1 − 2.2| > 1 so it grows."
+    }
+   ]
+  },
+  "revision": {
+   "definitions": [
+    {
+     "term": "Gradient",
+     "meaning": "Partial derivatives of the loss; points uphill."
+    },
+    {
+     "term": "Learning rate",
+     "meaning": "Step size of each update."
+    },
+    {
+     "term": "SGD",
+     "meaning": "Gradient descent on one example or a mini-batch per step."
+    },
+    {
+     "term": "Momentum",
+     "meaning": "Velocity built from past gradients."
+    },
+    {
+     "term": "Adam",
+     "meaning": "Momentum + per-weight adaptive steps + bias correction."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Gradient descent",
+     "expression": "w ← w − η·∇L(w)",
+     "meaning": "Step against the gradient."
+    },
+    {
+     "name": "Momentum",
+     "expression": "v ← βv + ∇L;  w ← w − ηv",
+     "meaning": "β ≈ 0.9."
+    },
+    {
+     "name": "Adam step",
+     "expression": "w ← w − η·m̂ / (√v̂ + ε)",
+     "meaning": "m̂, v̂: bias-corrected moments."
+    }
+   ],
+   "comparison": {
+    "title": "Optimizers at a glance",
+    "columns": [
+     "Optimizer",
+     "Idea",
+     "Strength",
+     "Watch out"
+    ],
+    "rows": [
+     [
+      "GD / SGD",
+      "Step against the gradient",
+      "Simple, generalises well",
+      "Needs rate tuning"
+     ],
+     [
+      "Momentum",
+      "Add velocity",
+      "Faster in valleys",
+      "Can overshoot"
+     ],
+     [
+      "Adam",
+      "Momentum + adaptive steps",
+      "Fast, little tuning",
+      "Not always best final accuracy"
+     ]
+    ]
+   },
+   "mistakes": [
+    "Never tuning the learning rate.",
+    "Comparing optimizers at one shared learning rate.",
+    "Ignoring NaN losses instead of lowering the rate or clipping."
+   ],
+   "confusions": [
+    {
+     "pair": "Epoch vs step",
+     "difference": "An epoch passes over all data; a step is one parameter update (one batch)."
+    },
+    {
+     "pair": "Learning rate vs momentum β",
+     "difference": "η scales each step; β sets how much past gradients carry over."
+    }
+   ],
+   "takeaways": [
+    "The learning rate matters most.",
+    "Mini-batches in practice.",
+    "Adam is the default; tuned SGD+momentum is a strong rival."
+   ]
+  }
+ }
+}

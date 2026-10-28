@@ -99,12 +99,13 @@ def test_student_cannot_touch_another_students_sessions(make_client):
 
 
 def test_student_api_never_takes_another_principals_id():
-    """Student endpoints act on the session's own account only; the only path parameter
-    allowed is the student's own session id (checked against ownership above)."""
+    """Student endpoints act on the session's own account only. Path parameters are limited to
+    the student's own session id (ownership-checked above) and identifiers of *published*
+    learning content; never a student, admin or other account id."""
     student_paths = {path for _, path in _api_operations("/api/student")}
     assert len(student_paths) >= 8
     params = {p for path in student_paths for p in re.findall(r"\{([^}]+)\}", path)}
-    assert params == {"session_id"}
+    assert params == {"session_id", "slug", "media_id"}
 
 
 def _walk(value: Any) -> list[str]:

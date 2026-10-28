@@ -2,6 +2,7 @@ import { CalendarClock, CircleDollarSign, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
+import { StatTile } from '../../../components/ui/StatTile'
 import { Alert, Badge, Card, CardHeader, EmptyState, Skeleton } from '../../../components/ui/Feedback'
 import { errorMessage } from '../../../lib/api'
 import { cn } from '../../../lib/cn'
@@ -38,18 +39,6 @@ const addDays = (day: string, days: number) =>
 const plural = (count: number, word: string) => `${formatCount(count)} ${word}${count === 1 ? '' : 's'}`
 
 const CAP_PERIOD: Record<string, string> = { daily: 'a day', weekly: 'a week', monthly: 'a month' }
-
-function StatTile({ label, value, note }: { label: string; value: string; note: string }) {
-  return (
-    <Card className="p-5">
-      <p className="text-sm font-medium text-slate-500">{label}</p>
-      <p className="mt-2 font-sans text-3xl font-semibold tracking-tight text-slate-900 tabular-nums">
-        {value}
-      </p>
-      <p className="mt-1 text-xs text-slate-500">{note}</p>
-    </Card>
-  )
-}
 
 function ProviderDetails({ data }: { data: AiProviderStatus }) {
   if (!data.configured) {

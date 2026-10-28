@@ -1,4 +1,16 @@
-import { Database, GraduationCap, LayoutDashboard, Settings, type LucideIcon } from 'lucide-react'
+import {
+  Activity,
+  Brain,
+  Database,
+  FolderTree,
+  GraduationCap,
+  LibraryBig,
+  LayoutDashboard,
+  ScanSearch,
+  Settings,
+  Telescope,
+  type LucideIcon,
+} from 'lucide-react'
 
 export type NavItem = {
   to: string
@@ -9,12 +21,24 @@ export type NavItem = {
   anyOf?: string[]
 }
 
-// Only modules that work today are listed. Each later phase adds its own entry
-// (agents, intelligence, taxonomy, studio, review, analytics, ...).
+const CONTENT = ['content.generate', 'content.review', 'content.publish']
+
+// Only modules that work today are listed. Each later phase adds its own entry.
 export const ADMIN_NAV: NavItem[] = [
   { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
-  { to: '/admin/students', label: 'Students', icon: GraduationCap, anyOf: ['students.view'] },
   { to: '/admin/sources', label: 'Interview sources', icon: Database, anyOf: ['sources.view'] },
+  { to: '/admin/agents/exploration', label: 'Exploration agent', icon: ScanSearch, anyOf: ['agents.view'] },
+  {
+    to: '/admin/agents/research',
+    label: 'Market research',
+    icon: Telescope,
+    anyOf: ['agents.view', 'intelligence.view', 'taxonomy.manage'],
+  },
+  { to: '/admin/intelligence', label: 'Interview intelligence', icon: Brain, anyOf: ['intelligence.view'] },
+  { to: '/admin/content', label: 'Content studio', icon: LibraryBig, anyOf: CONTENT },
+  { to: '/admin/topics', label: 'Domains & topics', icon: FolderTree, anyOf: ['taxonomy.manage', ...CONTENT] },
+  { to: '/admin/students', label: 'Students', icon: GraduationCap, anyOf: ['students.view'] },
+  { to: '/admin/agents/runs', label: 'Agent runs', icon: Activity, anyOf: ['agents.view'] },
   {
     to: '/admin/settings',
     label: 'System settings',

@@ -44,9 +44,12 @@ known-first-party = ["app", "tests"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "S106"]
 "alembic/**" = ["E501"]
+"app/content/starter/**" = ["E501"]  # prose and code samples
 
 [dependency-groups]
 dev = [
+    "numpy>=2.5.4",
     "pytest>=9.1.1",
     "ruff>=0.17.2",
+    "scikit-learn>=1.9.1",
 ]

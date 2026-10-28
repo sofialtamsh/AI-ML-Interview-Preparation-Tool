@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api, ApiError } from '../lib/api'
 import { studentKeys } from '../lib/queryClient'
-import type { Message, StudentMe, StudentSession } from '../lib/types'
+import type { LearnDomain, LearnTopic, Message, StudentMe, StudentSession } from '../lib/types'
 
 export function useStudentMe() {
   return useQuery({
@@ -123,3 +123,17 @@ export function useRevokeOtherSessions() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: studentKeys.sessions }),
   })
 }
+
+export function useLearnDomains() {
+  return useQuery({ queryKey: studentKeys.learn, queryFn: () => api<LearnDomain[]>('/student/learn') })
+}
+
+export function useLearnTopic(slug: string) {
+  return useQuery({
+    queryKey: studentKeys.topic(slug),
+    queryFn: () => api<LearnTopic>(`/student/learn/topics/${slug.split('/').map(encodeURIComponent).join('/')}`),
+    enabled: slug.length > 0,
+  })
+}
+
+export const studentMediaUrl = (id: string) => `/api/student/learn/media/${id}`

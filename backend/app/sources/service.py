@@ -1,7 +1,7 @@
 """Source operations shared by the admin API and the job worker."""
 
 import hashlib
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from typing import Any
 
@@ -322,13 +322,19 @@ class _FetchRun:
         self.counts["skipped_known"] += 1
 
 
-def run_source_fetch(ctx: JobContext) -> None:
-    """Job handler: fetch new and changed records from one source."""
-    db, job = ctx.db, ctx.job
-    source = db.get(InterviewSource, job.source_id)
+def active_source(ctx: JobContext) -> InterviewSource:
+    source = ctx.db.get(InterviewSource, ctx.job.source_id)
     if source is None or source.archived_at is not None or not source.enabled:
-        raise SourceError("The source was removed or turned off before the fetch started.")
-    ctx.check_cancelled()
+        raise SourceError("The source was removed or turned off before the run started.")
+    return source
+
+
+def fetch_records(
+    ctx: JobContext, source: InterviewSource, on_record: Callable[[dict[str, int]], None]
+) -> dict[str, int]:
+    """Fetch new and changed records into the job, updating the source's status. Raises
+    UserFacingError if the source can't be read. Shared by fetch runs and exploration runs."""
+    db, job = ctx.db, ctx.job
     source.last_attempted_sync_at = utcnow()
     db.commit()
     connector_label = CONNECTORS[source.connector_type].label
@@ -342,17 +348,15 @@ def run_source_fetch(ctx: JobContext) -> None:
                 outcome = store_record(db, source, job, record)
                 run.counts["seen"] += 1
                 run.counts[outcome] += 1
-                ctx.report(done=run.counts["seen"], result=run.counts)
-    except JobCancelled:
-        ctx.report(result=run.counts)
-        raise
+                on_record(run.counts)
     except AccessBlocked as exc:
-        ctx.report(result=run.counts)
         set_connection_status(source, ConnectionStatus.MANUAL_IMPORT_REQUIRED, str(exc))
         db.commit()
         raise
+    except JobCancelled:
+        on_record(run.counts)  # the run's counts so far stay on record
+        raise
     except UserFacingError as exc:
-        ctx.report(result=run.counts)
         set_connection_status(source, ConnectionStatus.FAILED, str(exc))
         db.commit()
         raise
@@ -363,8 +367,19 @@ def run_source_fetch(ctx: JobContext) -> None:
     source.sync_state = state
     source.last_successful_sync_at = utcnow()
     set_connection_status(source, ConnectionStatus.OK, f"Last fetch: {summarise(run.counts)}.")
-    ctx.report(result=run.counts)
-    ctx.info(f"Done: {summarise(run.counts)}.")
+    db.commit()
+    return run.counts
+
+
+def run_source_fetch(ctx: JobContext) -> None:
+    """Job handler: fetch new and changed records from one source."""
+    source = active_source(ctx)
+    ctx.check_cancelled()
+    counts = fetch_records(
+        ctx, source, lambda counts: ctx.report(done=counts["seen"], result=counts)
+    )
+    ctx.report(result=counts)
+    ctx.info(f"Done: {summarise(counts)}.")
 
 
 def import_file(

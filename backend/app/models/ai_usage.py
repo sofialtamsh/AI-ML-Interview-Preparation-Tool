@@ -29,3 +29,5 @@ class AiUsageEvent(Base):
     triggered_by_admin_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("admin_users.id"), index=True
     )
+    # The agent run that made the call, so each run's cost can be reported.
+    job_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("jobs.id"), index=True)
