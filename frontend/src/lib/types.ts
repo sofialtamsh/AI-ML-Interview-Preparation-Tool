@@ -73,6 +73,8 @@ export type StudentListItem = {
   cohort: Cohort | null
   created_at: string
   last_login_at: string | null
+  /** Present in the student directory. */
+  learning?: LearningSnapshot
 }
 
 export type LoginEvent = {
@@ -237,6 +239,7 @@ export type JobKind =
   | 'market_research'
   | 'content_generation'
   | 'content_narration'
+  | 'content_review'
 
 export type JobSummary = {
   id: string
@@ -590,6 +593,224 @@ export type InterviewEntry = {
 
 export type InterviewContent = { questions: InterviewEntry[]; takeaways: string[] }
 
+// --- Learning progress (student, and admins viewing a student) ---------------------------------
+
+export type SectionStatus = 'done' | 'started' | 'not_started'
+export type MasteryBand = 'strong' | 'developing' | 'needs_work' | 'not_enough_evidence'
+export type ProgressKind =
+  | 'section_opened'
+  | 'section_done'
+  | 'lesson_progress'
+  | 'playground_task'
+  | 'video_progress'
+  | 'code_run'
+  | 'interview_take'
+
+export type TopicProgress = {
+  sections: Record<string, SectionStatus>
+  last_section: string | null
+  completed: boolean
+  quiz: { attempts: number; best_pct: number | null; last_pct: number | null }
+  answered_questions: string[]
+}
+
+export type QuizResult = { attempt_number: number; correct: number; total: number; score_pct: number; best_pct: number }
+
+export type Mastery = { score: number | null; band: MasteryBand; quiz_average: number | null; practice_average: number | null }
+
+export type TopicSummary = {
+  slug: string
+  name: string
+  domain: string
+  sections: Record<string, SectionStatus>
+  done: number
+  total: number
+  completion: number
+  completed: boolean
+  started: boolean
+  last_visited_at: string | null
+  last_section: string | null
+  quiz_attempts: number
+  quiz_best: number | null
+  quiz_last: number | null
+  interview_takes: number
+  active_seconds: number
+  mastery: Mastery
+}
+
+export type ProgressSummary = {
+  overall_completion: number
+  sections_done: number
+  sections_total: number
+  topics_completed: number
+  topics_started: number
+  topics: TopicSummary[]
+  domains: { name: string; done: number; total: number; completion: number }[]
+  continue: (TopicSummary & { next_section: string | null }) | null
+  recommended: (TopicSummary & { reason: string })[]
+  recent_quizzes: { topic: string; slug: string | null; score_pct: number; correct: number; total: number; attempt_number: number; submitted_at: string }[]
+  quiz_average: number | null
+  strengths: string[]
+  weaknesses: string[]
+  interview: { answers_recorded: number; feedback_count: number; average_score: number | null; recent_scores: { score: number; at: string }[] }
+  activity: {
+    streak_days: number
+    active_days_this_week: number
+    active_days_last_30: number
+    last_active_at: string | null
+    learning_seconds: number
+    learning_seconds_last_7: number
+  }
+}
+
+export type StudentLearning = {
+  summary: ProgressSummary
+  quiz_attempts: {
+    id: string
+    topic: string
+    topic_slug: string | null
+    attempt_number: number
+    correct: number
+    total: number
+    score_pct: number
+    duration_seconds: number | null
+    submitted_at: string
+    responses: { question_index: number; prompt: string; chosen: number | null; correct: boolean; difficulty: string }[]
+  }[]
+  practice: { topic: string; question: string; score: number | null; verdict: string | null; deleted: boolean; created_at: string }[]
+  timeline: { at: string; topic: string; section: string; action: string }[]
+}
+
+export type LearningSnapshot = {
+  last_active_at: string | null
+  topics_started: number
+  topics_completed: number
+  learning_seconds: number
+  quiz_attempts: number
+  quiz_average: number | null
+  practice_answers: number
+  practice_average: number | null
+  flags: ('inactive' | 'struggling')[]
+}
+
+export type AnalyticsReport = {
+  range: { start: string; end: string }
+  kpis: {
+    students: number
+    new_students: number
+    active_students: number
+    quiz_attempts: number
+    quiz_average: number | null
+    practice_answers: number
+    practice_average: number | null
+    needing_attention: number
+    published_topics: number
+    published_sections: number
+    /** Average share of live sections done, over every student in scope (null with none). */
+    average_completion: number | null
+    learning_seconds: number
+    learning_seconds_per_learner: number | null
+  }
+  registrations: { day: string; count: number }[]
+  weekly_active: { week: string; count: number }[]
+  score_distribution: { from: number; to: number; count: number }[]
+  topics: {
+    slug: string
+    name: string
+    domain: string
+    started: number
+    completed: number
+    completion_rate: number | null
+    quiz_attempts: number
+    quiz_average: number | null
+    practice_answers: number
+    practice_average: number | null
+    learning_seconds: number
+  }[]
+  domains: { name: string; started: number; completed: number; completion_rate: number | null; quiz_average: number | null }[]
+  weak_topics: AnalyticsReport['topics']
+  cohorts: { name: string; students: number; active: number; quiz_average: number | null }[]
+  /** Set when the report is filtered to one student. */
+  student: { id: string; full_name: string; student_code: string } | null
+  filters: { domains: { slug: string; name: string }[]; topics: { slug: string; name: string }[]; cohorts: { id: string; name: string }[] }
+}
+
+// --- Interview practice (student) ------------------------------------------------------------
+
+export type PracticeStatus = {
+  feedback_available: boolean
+  reason: string | null
+  daily_limit: number
+  used_today: number
+  max_seconds: number
+}
+
+export type AttemptStatus = 'queued' | 'processing' | 'completed' | 'no_answer' | 'failed'
+export type VerdictKey = 'ready' | 'almost' | 'getting_there' | 'practice' | 'off_topic'
+
+export type AttemptSummary = {
+  id: string
+  topic_slug: string
+  question_index: number
+  question: string
+  status: AttemptStatus
+  score: number | null
+  verdict: string | null
+  duration_ms: number
+  created_at: string
+}
+
+export type Delivery = {
+  duration_s: number
+  words: number
+  wpm: number
+  pace: 'slow' | 'good' | 'fast'
+  fillers: Record<string, number>
+  filler_count: number
+  longest_pause_s: number | null
+  long_pauses: number | null
+  opening_pause_s: number | null
+}
+
+export type AnswerFeedback = {
+  score: number
+  verdict: { key: VerdictKey; label: string }
+  answered_question: boolean
+  summary: string
+  criteria: { key: string; label: string; score: number; comment: string }[]
+  strengths: { point: string; quote: string }[]
+  improvements: { point: string; how: string }[]
+  key_points_covered: string[]
+  key_points_missed: string[]
+  mistakes: { quote: string; correction: string }[]
+  tips: string[]
+  better_answer: string
+  follow_up: { question: string; answer: string } | null
+}
+
+export type AttemptDetail = AttemptSummary & {
+  transcript: string | null
+  delivery: Delivery | null
+  feedback: AnswerFeedback | null
+  error: string | null
+}
+
+export type PracticeAdminView = {
+  enabled: boolean
+  daily_limit: number
+  ai_configured: boolean
+  max_seconds: number
+  transcription_model: string
+  feedback_model: string
+  last_7_days: {
+    attempts: number
+    students: number
+    feedback_given: number
+    average_score: number | null
+    cost_usd: string
+  }
+}
+
 export type LearnTopicCard = {
   slug: string
   name: string
@@ -612,8 +833,11 @@ export type LearnTopic = {
   playground: PlaygroundContent | null
   video: VideoContent | null
   python: PythonLabContent | null
-  interview: InterviewContent | null
+  // Practice answers name the exact (immutable) question set they answered.
+  interview: (InterviewContent & { version_id: string }) | null
   quiz: QuizContent | null
+  // Quiz attempts name the exact (immutable) quiz they answered, so the server can grade them.
+  quiz_version_id?: string | null
   revision: RevisionContent | null
 }
 
@@ -649,6 +873,90 @@ export type ComponentState = {
   published_number: number | null
   latest: VersionSummary | null
   versions: VersionSummary[]
+}
+
+// --- Content quality (admin, Phase 5) ----------------------------------------------------------
+
+export type CheckStatus = 'passed' | 'warning' | 'error'
+
+export type AutomatedCheck = {
+  key: string
+  label: string
+  status: CheckStatus
+  findings: { severity: 'warning' | 'error'; message: string; where: string | null }[]
+  note: string | null
+}
+
+export type ReviewIssue = {
+  severity: 'error' | 'warning' | 'suggestion'
+  location: string
+  quote: string | null
+  problem: string
+  fix: string
+}
+
+export type QuizCheckRow = { question: number; key: number; picked: number | null; confident: boolean; agrees: boolean }
+
+export type AiReview = {
+  id: string
+  created_at: string
+  model: string
+  summary: string
+  scores: Record<string, number | null>
+  average: number | null
+  issues: ReviewIssue[]
+  quiz_check: QuizCheckRow[] | null
+  dropped_issues: number
+  requested_by: string | null
+}
+
+export type Rating = { admin: string; mine: boolean; scores: Record<string, number>; average: number; note: string | null; created_at: string }
+
+export type RatingSummary = { criteria: { key: string; label: string }[]; ratings: Rating[]; average: number | null }
+
+export type VersionQuality = {
+  automated: { checks: AutomatedCheck[]; errors: number; warnings: number }
+  ai_reviews: AiReview[]
+  ratings: RatingSummary
+  review_model: string
+  ai_configured: boolean
+}
+
+export type CoverageQuestion = { id: string; question: string; role: string | null; used: boolean }
+
+export type TopicInsights = {
+  spend_usd: string
+  runs: number
+  interview_version: number | null
+  interview_published: boolean
+  actual_questions: CoverageQuestion[]
+  research_questions: CoverageQuestion[]
+}
+
+export type PilotComponent = {
+  component: ContentComponent
+  latest_number: number | null
+  latest_status: VersionStatus | null
+  published_number: number | null
+  errors: number
+  warnings: number
+  ai_score: number | null
+  rating: number | null
+  ratings: number
+}
+
+export type PilotEvaluation = {
+  expansion_approved: boolean
+  topics: { topic: ContentTopicRef; components: PilotComponent[] }[]
+  totals: {
+    components: number
+    published: number
+    with_errors: number
+    ai_reviewed: number
+    rated: number
+    average_rating: number | null
+    average_ai_score: number | null
+  }
 }
 
 export type TopicContent = {
@@ -697,7 +1005,7 @@ export type VersionDetail = VersionSummary & {
   narration: NarrationClip[]
 }
 
-export type ContentJob = AgentJob & { topic: ContentTopicRef | null }
+export type ContentJob = AgentJob & { topic: ContentTopicRef | null; batch_id?: string | null }
 export type ContentJobDetail = ContentJob & { payload: Record<string, unknown>; events: JobDetail['events'] }
 
 export type GenerateResult = {

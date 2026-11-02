@@ -461,11 +461,11 @@
      "code": null,
      "options": [
       "Classification",
-      "Regression",
+      "Dimensionality reduction",
       "Clustering",
-      "Dimensionality reduction"
+      "Regression"
      ],
-     "answer": 1,
+     "answer": 3,
      "explanation": "The output is a number, so it's regression."
     },
     {
@@ -489,11 +489,11 @@
      "code": null,
      "options": [
       "Underfitting",
-      "Overfitting",
       "Too little training time",
+      "Overfitting",
       "A perfect model"
      ],
-     "answer": 1,
+     "answer": 2,
      "explanation": "A big gap between train and test performance is the classic sign of overfitting."
     },
     {
@@ -502,12 +502,12 @@
      "prompt": "In k-nearest neighbours, what usually happens as k gets very large?",
      "code": null,
      "options": [
-      "The boundary gets more jagged",
-      "The model memorises the training data",
       "The boundary gets smoother and can underfit",
+      "The model memorises the training data",
+      "The boundary gets more jagged",
       "Training accuracy reaches 100%"
      ],
-     "answer": 2,
+     "answer": 0,
      "explanation": "Averaging over many neighbours smooths the boundary; too much smoothing ignores real structure."
     },
     {
@@ -532,10 +532,10 @@
      "options": [
       "1%",
       "50%",
-      "99%",
-      "It can't be measured"
+      "It can't be measured",
+      "99%"
      ],
-     "answer": 2,
+     "answer": 3,
      "explanation": "It's right on all 99% non-spam emails. That's why accuracy misleads on imbalanced data."
     }
    ]
@@ -1030,11 +1030,11 @@
      "code": null,
      "options": [
       "Examples with labels",
-      "Inputs without labels",
       "Only images",
+      "Inputs without labels",
       "A reward signal from a game"
      ],
-     "answer": 1,
+     "answer": 2,
      "explanation": "No labels: the model finds structure in the inputs themselves."
     },
     {
@@ -1043,12 +1043,12 @@
      "prompt": "Which task is unsupervised?",
      "code": null,
      "options": [
-      "Predicting house prices from past sales",
       "Grouping customers by shopping behaviour",
+      "Predicting house prices from past sales",
       "Detecting spam from labelled emails",
       "Recognising handwritten digits from labelled images"
      ],
-     "answer": 1,
+     "answer": 0,
      "explanation": "Grouping without predefined categories is clustering."
     },
     {
@@ -1058,11 +1058,11 @@
      "code": null,
      "options": [
       "Each point moves toward the nearest centroid",
-      "Each centroid moves to the mean of its assigned points",
+      "Outliers are removed",
       "k increases by one",
-      "Outliers are removed"
+      "Each centroid moves to the mean of its assigned points"
      ],
-     "answer": 1,
+     "answer": 3,
      "explanation": "Assign points to the nearest centroid, then move centroids to the average of their points."
     },
     {
@@ -1071,12 +1071,12 @@
      "prompt": "Why can't you choose k simply by picking the lowest inertia?",
      "code": null,
      "options": [
-      "Inertia always decreases as k grows",
       "Inertia is always zero",
+      "Inertia always decreases as k grows",
       "Inertia only works for k = 2",
       "Lower inertia means worse clusters"
      ],
-     "answer": 0,
+     "answer": 1,
      "explanation": "More clusters always reduce inertia (k = number of points gives 0), so you look for the elbow instead."
     },
     {
@@ -1086,11 +1086,11 @@
      "code": null,
      "options": [
       "Use more clusters",
-      "Scale the features before clustering",
       "Remove the age feature",
+      "Scale the features before clustering",
       "Run fewer iterations"
      ],
-     "answer": 1,
+     "answer": 2,
      "explanation": "Distances are dominated by the large-scale feature until you standardise."
     },
     {
@@ -1100,11 +1100,11 @@
      "code": null,
      "options": [
       "Very well separated clusters",
-      "Points lie near the boundaries between clusters",
+      "k-means converged perfectly",
       "The data has no outliers",
-      "k-means converged perfectly"
+      "Points lie near the boundaries between clusters"
      ],
-     "answer": 1,
+     "answer": 3,
      "explanation": "Near 0 means a point is about as close to another cluster as to its own."
     },
     {
@@ -1113,12 +1113,12 @@
      "prompt": "Your data forms two interlocking crescent shapes. Best choice?",
      "code": null,
      "options": [
-      "k-means with k = 2",
       "DBSCAN",
+      "k-means with k = 2",
       "Linear regression",
       "k-means with k = 10"
      ],
-     "answer": 1,
+     "answer": 0,
      "explanation": "Density-based clustering follows arbitrary shapes; k-means assumes round clusters."
     }
    ]
@@ -1655,11 +1655,11 @@
      "code": null,
      "options": [
       "It rises by 0.25",
-      "It rises by 2.5",
+      "It doubles",
       "It rises by 4",
-      "It doubles"
+      "It rises by 2.5"
      ],
-     "answer": 1,
+     "answer": 3,
      "explanation": "The slope is 0.25 per unit, so 10 units add 2.5."
     },
     {
@@ -1668,12 +1668,12 @@
      "prompt": "Why square the residuals in MSE?",
      "code": null,
      "options": [
-      "To make the numbers smaller",
       "So errors can't cancel out and big errors count more",
+      "To make the numbers smaller",
       "Because it's faster to compute",
       "To ignore outliers"
      ],
-     "answer": 1,
+     "answer": 0,
      "explanation": "Squares are positive and grow quickly with the size of the error."
     },
     {
@@ -1683,11 +1683,11 @@
      "code": null,
      "options": [
       "Is perfect",
-      "Does no better than always predicting the mean",
       "Has zero error",
+      "Does no better than always predicting the mean",
       "Is impossible to compute"
      ],
-     "answer": 1,
+     "answer": 2,
      "explanation": "R² compares your model with the mean-only baseline."
     },
     {
@@ -1697,11 +1697,11 @@
      "code": null,
      "options": [
       "Doesn't change",
-      "Moves toward the outlier",
+      "Becomes horizontal",
       "Moves away from the outlier",
-      "Becomes horizontal"
+      "Moves toward the outlier"
      ],
-     "answer": 1,
+     "answer": 3,
      "explanation": "Squared error gives the outlier a large pull on the fit."
     },
     {
@@ -1710,12 +1710,12 @@
      "prompt": "Why does this raise an error?",
      "code": "model = LinearRegression()\nmodel.fit(size, rent)  # size is a 1-D array",
      "options": [
-      "rent must be 2-D",
       "X must be 2-D: use size.reshape(-1, 1)",
+      "rent must be 2-D",
       "LinearRegression needs a learning rate",
       "fit expects lists, not arrays"
      ],
-     "answer": 1,
+     "answer": 0,
      "explanation": "scikit-learn expects features as a 2-D array of shape (samples, features)."
     },
     {
@@ -1725,11 +1725,11 @@
      "code": null,
      "options": [
       "Ridge (L2)",
-      "Lasso (L1)",
       "Neither",
+      "Lasso (L1)",
       "Both equally"
      ],
-     "answer": 1,
+     "answer": 2,
      "explanation": "The L1 penalty's corners drive some coefficients to exactly zero."
     }
    ]
@@ -2240,12 +2240,12 @@
      "prompt": "What does a neuron compute before its activation?",
      "code": null,
      "options": [
-      "The maximum input",
       "A weighted sum of inputs plus a bias",
+      "The maximum input",
       "The average of its weights",
       "A random number"
      ],
-     "answer": 1,
+     "answer": 0,
      "explanation": "z = w·x + b, then the activation is applied to z."
     },
     {
@@ -2255,11 +2255,11 @@
      "code": null,
      "options": [
       "Forward pass",
-      "Backpropagation",
       "Data loading",
+      "Backpropagation",
       "Prediction"
      ],
-     "answer": 1,
+     "answer": 2,
      "explanation": "Backpropagation applies the chain rule from the loss back to every weight."
     },
     {
@@ -2269,11 +2269,11 @@
      "code": null,
      "options": [
       "A 5-times more powerful model",
-      "A single linear model",
+      "An unsupervised model",
       "A decision tree",
-      "An unsupervised model"
+      "A single linear model"
      ],
-     "answer": 1,
+     "answer": 3,
      "explanation": "Linear layers compose into one linear function."
     },
     {
@@ -2283,11 +2283,11 @@
      "code": null,
      "options": [
       "13",
-      "30",
       "33",
+      "30",
       "300"
      ],
-     "answer": 2,
+     "answer": 1,
      "explanation": "10 × 3 weights + 3 biases = 33."
     },
     {
@@ -2297,11 +2297,11 @@
      "code": null,
      "options": [
       "XOR has too many examples",
-      "XOR isn't linearly separable",
+      "XOR needs a bigger learning rate",
       "Neurons can't output 0",
-      "XOR needs a bigger learning rate"
+      "XOR isn't linearly separable"
      ],
-     "answer": 1,
+     "answer": 3,
      "explanation": "No single straight line separates XOR's classes."
     },
     {
@@ -2310,12 +2310,12 @@
      "prompt": "All weights start at exactly 0. What happens in training?",
      "code": null,
      "options": [
-      "Training is faster",
       "Neurons in a layer stay identical",
+      "Training is faster",
       "The network overfits immediately",
       "Nothing; it's the recommended setting"
      ],
-     "answer": 1,
+     "answer": 0,
      "explanation": "Same inputs and gradients keep them identical: symmetry is never broken."
     },
     {
@@ -2325,11 +2325,11 @@
      "code": "d_h = d_out @ W2.T * (1 - h ** 2)",
      "options": [
       "The loss",
-      "The derivative of tanh at the hidden layer",
       "The learning rate",
+      "The derivative of tanh at the hidden layer",
       "A regularisation term"
      ],
-     "answer": 1,
+     "answer": 2,
      "explanation": "d/dz tanh(z) = 1 − tanh²(z), and h = tanh(z)."
     }
    ]
@@ -2826,11 +2826,11 @@
      "code": null,
      "options": [
       "−1 to 1",
-      "0 to 1",
+      "Any real number",
       "0 to infinity",
-      "Any real number"
+      "0 to 1"
      ],
-     "answer": 1,
+     "answer": 3,
      "explanation": "Sigmoid squashes any input into (0, 1)."
     },
     {
@@ -2853,12 +2853,12 @@
      "prompt": "Why do deep sigmoid networks train slowly?",
      "code": null,
      "options": [
-      "Sigmoid is expensive to compute",
       "Its gradients are small, and they shrink layer after layer",
+      "Sigmoid is expensive to compute",
       "It outputs negative numbers",
       "It can't be differentiated"
      ],
-     "answer": 1,
+     "answer": 0,
      "explanation": "Max slope 0.25 multiplied across layers → vanishing gradients."
     },
     {
@@ -2881,12 +2881,12 @@
      "prompt": "Output layer for predicting house prices?",
      "code": null,
      "options": [
-      "Softmax",
-      "Sigmoid",
       "No activation (linear)",
+      "Sigmoid",
+      "Softmax",
       "Tanh"
      ],
-     "answer": 2,
+     "answer": 0,
      "explanation": "Prices are unbounded numbers; a linear output doesn't restrict them."
     },
     {
@@ -2897,10 +2897,10 @@
      "options": [
       "1",
       "0.5",
-      "0.25",
-      "0.1"
+      "0.1",
+      "0.25"
      ],
-     "answer": 2,
+     "answer": 3,
      "explanation": "σ′(0) = 0.5 × 0.5 = 0.25."
     },
     {

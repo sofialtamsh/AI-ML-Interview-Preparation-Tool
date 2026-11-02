@@ -52,6 +52,11 @@ const ACTION_LABELS: Record<string, string> = {
   'content.narration_started': 'Started narration',
   'content.run_stopped': 'Stopped a content run',
   'content.expansion_decided': 'Decided on content expansion',
+  'content.ai_review_started': 'Started an AI review of content',
+  'content.rated': 'Rated content on the rubric',
+  'content.revision_started': 'Started an AI revision of content',
+  'content.run_retried': 'Retried a content run',
+  'practice.settings_changed': 'Changed interview practice feedback settings',
   'taxonomy.domain_created': 'Added a domain',
   'taxonomy.domain_updated': 'Edited a domain',
   'taxonomy.topic_created': 'Added a topic',
@@ -70,6 +75,7 @@ const FILTERS = [
   { value: 'research.', label: 'Research decisions' },
   { value: 'content.', label: 'Content' },
   { value: 'taxonomy.', label: 'Domains & topics' },
+  { value: 'practice.', label: 'Interview practice' },
 ]
 
 function show(value: unknown): string {

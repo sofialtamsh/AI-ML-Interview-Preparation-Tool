@@ -117,6 +117,42 @@ class CodeCheck(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
 
+class QualityReview(UUIDPrimaryKey, Base):
+    """An AI reviewer's assessment of one version: rubric scores, issues (each quote checked
+    against the content) and, for quizzes, the answers it chose without seeing the key.
+    Advisory only, never verification. Append-only."""
+
+    __tablename__ = "content_quality_reviews"
+
+    version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("content_versions.id"), index=True)
+    job_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("jobs.id"))
+    model: Mapped[str] = mapped_column(String(200))
+    summary: Mapped[str] = mapped_column(Text)
+    scores: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    issues: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    quiz_check: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB)
+    # Issues dropped because their quote isn't in the content (the model misread or invented it).
+    dropped_issues: Mapped[int] = mapped_column(default=0)
+    requested_by_admin_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("admin_users.id"))
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+class ContentRating(Base):
+    """A reviewer's rubric scores (1-5) for one version, used to judge the pilot before content
+    expands. Append-only: re-rating adds a row, and an admin's latest row counts."""
+
+    __tablename__ = "content_ratings"
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("content_versions.id"), index=True)
+    admin_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("admin_users.id"))
+    scores: Mapped[dict[str, int]] = mapped_column(JSONB)
+    note: Mapped[str | None] = mapped_column(String(1000))
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    admin: Mapped[AdminUser] = relationship(lazy="joined")
+
+
 class MediaAsset(UUIDPrimaryKey, Base):
     """Generated media for a version, e.g. one narration clip per video scene."""
 

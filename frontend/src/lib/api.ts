@@ -52,7 +52,8 @@ const SESSION_PROBES = ['/auth/login', '/auth/me', '/auth/register', '/auth/logo
 
 export async function api<T>(
   path: string,
-  options: { method?: string; body?: unknown; signal?: AbortSignal } = {},
+  // keepalive lets a small request finish while the page is being closed.
+  options: { method?: string; body?: unknown; signal?: AbortSignal; keepalive?: boolean } = {},
 ): Promise<T> {
   // FormData (file uploads) is sent as multipart; the browser sets its Content-Type.
   const isForm = options.body instanceof FormData
@@ -73,6 +74,7 @@ export async function api<T>(
             ? (options.body as FormData)
             : JSON.stringify(options.body),
       signal: options.signal,
+      keepalive: options.keepalive,
     })
   } catch (error) {
     if ((error as Error).name === 'AbortError') throw error

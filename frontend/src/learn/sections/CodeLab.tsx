@@ -7,8 +7,9 @@ import { normaliseOutput, runPython, type RunResult, type RunStatus } from '../.
 import type { PythonLabContent } from '../../lib/types'
 import { PythonCode } from '../PythonCode'
 import { RichText } from '../RichText'
+import type { ProgressReporter } from '.'
 
-export function CodeLab({ lab, editable = true }: { lab: PythonLabContent; editable?: boolean }) {
+export function CodeLab({ lab, editable = true, onProgress }: { lab: PythonLabContent; editable?: boolean; onProgress?: ProgressReporter }) {
   const [codes, setCodes] = useState(() => lab.steps.map((s) => s.code))
   const [editing, setEditing] = useState<number | null>(null)
   const [copied, setCopied] = useState<number | null>(null)
@@ -25,6 +26,10 @@ export function CodeLab({ lab, editable = true }: { lab: PythonLabContent; edita
     const outcome = await runPython(program, lab.packages, setStatus)
     setStatus(null)
     setResult(outcome)
+    onProgress?.('code_run', {
+      ok: !outcome.error,
+      matched: !outcome.error && normaliseOutput(outcome.output) === normaliseOutput(lab.expected_output),
+    })
   }
 
   const copy = async (i: number) => {

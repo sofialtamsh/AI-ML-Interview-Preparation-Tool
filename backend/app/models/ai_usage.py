@@ -31,3 +31,10 @@ class AiUsageEvent(Base):
     )
     # The agent run that made the call, so each run's cost can be reported.
     job_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("jobs.id"), index=True)
+    # Calls a student's own action caused (interview practice feedback).
+    triggered_by_student_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("students.id"), index=True
+    )
+    practice_attempt_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("practice_attempts.id"), index=True
+    )

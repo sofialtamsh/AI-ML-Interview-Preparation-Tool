@@ -48,10 +48,19 @@ class Settings(BaseSettings):
     # stronger model. Narration uses OpenRouter text-to-speech.
     model_content: str = "anthropic/claude-sonnet-5.5"
     model_narration: str = "microsoft/mai-voice-2.1-flash"
+    # The AI reviewer of learning content: a different vendor from the writer, for independence.
+    model_review: str = "google/gemini-3.8-flash"
     narration_voices: list[str] = [
         "en-IN-Priya:MAI-Voice-2.1-Flash",
         "en-IN-Dhruv:MAI-Voice-2.1-Flash",
     ]
+    # Interview practice: a student's spoken answer is transcribed (OpenRouter speech-to-text),
+    # then scored against the reviewed answer the way an interviewer would.
+    model_transcription: str = "openai/whisper-large-v3"
+    model_feedback: str = "anthropic/claude-sonnet-5.5"
+    practice_max_answer_seconds: int = 180
+    # Threads that process practice attempts (separate from the admin job worker).
+    practice_workers: int = 2
     # OpenRouter's web search backend for the Market Research Agent. Exa returns page
     # excerpts, so quoted evidence can be checked against what the source says.
     research_search_engine: Literal["exa", "parallel", "perplexity", "firecrawl", "native"] = "exa"

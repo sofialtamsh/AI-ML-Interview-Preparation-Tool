@@ -419,11 +419,11 @@ QUIZ = {
             "prompt": "What does unsupervised learning work with?",
             "options": [
                 "Examples with labels",
-                "Inputs without labels",
                 "Only images",
+                "Inputs without labels",
                 "A reward signal from a game",
             ],
-            "answer": 1,
+            "answer": 2,
             "explanation": "No labels: the model finds structure in the inputs themselves.",
         },
         {
@@ -431,12 +431,12 @@ QUIZ = {
             "kind": "scenario",
             "prompt": "Which task is unsupervised?",
             "options": [
-                "Predicting house prices from past sales",
                 "Grouping customers by shopping behaviour",
+                "Predicting house prices from past sales",
                 "Detecting spam from labelled emails",
                 "Recognising handwritten digits from labelled images",
             ],
-            "answer": 1,
+            "answer": 0,
             "explanation": "Grouping without predefined categories is clustering.",
         },
         {
@@ -445,27 +445,25 @@ QUIZ = {
             "prompt": "In k-means, what happens in the update step?",
             "options": [
                 "Each point moves toward the nearest centroid",
-                "Each centroid moves to the mean of its assigned points",
-                "k increases by one",
                 "Outliers are removed",
+                "k increases by one",
+                "Each centroid moves to the mean of its assigned points",
             ],
-            "answer": 1,
-            "explanation": "Assign points to the nearest centroid, then move centroids to the "
-            "average of their points.",
+            "answer": 3,
+            "explanation": "Assign points to the nearest centroid, then move centroids to the average of their points.",
         },
         {
             "difficulty": "medium",
             "kind": "concept",
             "prompt": "Why can't you choose k simply by picking the lowest inertia?",
             "options": [
-                "Inertia always decreases as k grows",
                 "Inertia is always zero",
+                "Inertia always decreases as k grows",
                 "Inertia only works for k = 2",
                 "Lower inertia means worse clusters",
             ],
-            "answer": 0,
-            "explanation": "More clusters always reduce inertia (k = number of points gives 0), "
-            "so you look for the elbow instead.",
+            "answer": 1,
+            "explanation": "More clusters always reduce inertia (k = number of points gives 0), so you look for the elbow instead.",
         },
         {
             "difficulty": "medium",
@@ -473,13 +471,12 @@ QUIZ = {
             "prompt": "Features are salary (₹) and age. Clusters split only by salary. Fix?",
             "options": [
                 "Use more clusters",
-                "Scale the features before clustering",
                 "Remove the age feature",
+                "Scale the features before clustering",
                 "Run fewer iterations",
             ],
-            "answer": 1,
-            "explanation": "Distances are dominated by the large-scale feature until you "
-            "standardise.",
+            "answer": 2,
+            "explanation": "Distances are dominated by the large-scale feature until you standardise.",
         },
         {
             "difficulty": "hard",
@@ -487,22 +484,20 @@ QUIZ = {
             "prompt": "A silhouette score close to 0 for most points suggests…",
             "options": [
                 "Very well separated clusters",
-                "Points lie near the boundaries between clusters",
-                "The data has no outliers",
                 "k-means converged perfectly",
+                "The data has no outliers",
+                "Points lie near the boundaries between clusters",
             ],
-            "answer": 1,
-            "explanation": "Near 0 means a point is about as close to another cluster as to its "
-            "own.",
+            "answer": 3,
+            "explanation": "Near 0 means a point is about as close to another cluster as to its own.",
         },
         {
             "difficulty": "hard",
             "kind": "scenario",
             "prompt": "Your data forms two interlocking crescent shapes. Best choice?",
-            "options": ["k-means with k = 2", "DBSCAN", "Linear regression", "k-means with k = 10"],
-            "answer": 1,
-            "explanation": "Density-based clustering follows arbitrary shapes; k-means assumes "
-            "round clusters.",
+            "options": ["DBSCAN", "k-means with k = 2", "Linear regression", "k-means with k = 10"],
+            "answer": 0,
+            "explanation": "Density-based clustering follows arbitrary shapes; k-means assumes round clusters.",
         },
     ]
 }

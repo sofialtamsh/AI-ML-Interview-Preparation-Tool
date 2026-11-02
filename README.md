@@ -6,8 +6,10 @@ securely separated experiences: a **student** learning app and an **admin** cons
 - Product requirements: [docs/MASTER_PROMPT.md](docs/MASTER_PROMPT.md)
 - Architecture, data model, decisions and open inputs: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-**Status:** Phases 1–4 (foundation, interview data sources, intelligence agents, learning
-content for the pilot topics) and AI spend tracking are complete. See "What works today" below.
+**Status:** Phases 1–5 (foundation, interview data sources, intelligence agents, learning
+content for the pilot topics, content quality and review), Phase 6 part A (saved progress,
+dashboards, analytics), interview practice with AI feedback, and AI spend tracking are complete.
+See "What works today" below.
 
 ## Stack
 
@@ -82,14 +84,17 @@ The backend suite includes an authorization sweep. It calls **every** admin endp
 from the OpenAPI schema, with a student session and with no session, and expects 401. New admin
 endpoints are covered automatically.
 
-## What works today (Phases 1–4)
+## What works today (Phases 1–6A)
 
 **Students**
 - Register and sign in.
 - Reset a forgotten password by email link (single-use, 30 minutes).
 - Edit profile and change password.
 - See signed-in devices and sign them out.
-- Personal dashboard with the published topics.
+- Personal dashboard from their saved progress: streak, path completion, quiz average, answers
+  practised, continue where you left off, completion per domain and topic, mastery (strong /
+  getting there / needs work), strengths and weak spots, recommended next, recent quiz scores and
+  interview-practice scores. Progress follows them to any device.
 - **Explore and learn** (six pilot topics: Supervised Learning, Unsupervised Learning, Regression,
   Neural Network Fundamentals, Activation Functions, Optimizers). Each topic has:
   - **Learn:** swipeable bite-size cards with animated figures, myth vs fact, formulas, key terms;
@@ -97,8 +102,14 @@ endpoints are covered automatically.
     activation functions, gradient descent / Momentum / Adam) with "try this" tasks;
   - **Watch:** a narrated explainer, scene by scene, with captions;
   - **Code:** real Python (NumPy, scikit-learn) that runs and can be edited in the browser;
-  - **Interview:** questions by level with strong answers, what the interviewer wants, follow-ups;
-  - **Quiz:** instant feedback and a score (not saved yet; that is Phase 6);
+  - **Quiz:** instant feedback and a score; every attempt is graded on the server and kept;
+  - **Interview:** questions by level. Students record their answer on camera (or voice only, up
+    to 3 minutes) and get interviewer-style feedback: a score out of 10, four rubric scores,
+    pace, filler words and pauses, what landed, what to fix, missed key points, tips, a stronger
+    version of their answer and the likely follow-up. The strong answer unlocks after their first
+    take. The video stays on their device; only the voice is sent for feedback, and it's deleted
+    after scoring.
+    Earlier tries can be reopened or deleted;
   - **Revise:** a five-minute cheat sheet.
 
 **Admins**
@@ -159,20 +170,50 @@ endpoints are covered automatically.
     bulk per topic. Every step is audited.
   - A Python lab can't be published until its exact code has passed a check run in the browser.
   - Narrate a video with an Indian-English voice.
+  - **Quality tab** on every version: free automated checks (company names, links, broken
+    interview references, duplicate questions, guessable answer keys, video timing, unsafe lab
+    code); errors block publishing. An optional **AI review** by a second model scores the
+    version, lists issues with exact quotes and re-solves quizzes without the key (advice, not
+    verification). Reviewers rate each version on the pilot rubric.
+  - **Revise with AI**: a new draft from any version, following your instructions and/or the AI
+    review. **Retry what didn't finish** on any content run.
+  - **Pilot evaluation**: published, check errors, AI scores and ratings for every pilot topic ×
+    component, also shown before approving expansion. Each topic page shows its AI spend and
+    which approved interview questions its interview prep uses.
   - **Pilot gate:** generation only works for pilot topics until an admin with the settings
     permission approves expansion.
 - **Domains & topics:** add, rename, archive and restore domains and topics; choose pilot topics.
 - The starter drafts for the six pilot topics were written by the development assistant and are
   labelled as such. They go through the same review as AI drafts.
 
+**Students & analytics** (`students.view`, `analytics.view`, `analytics.export`)
+- The Overview shows learning for the last 30 days: active learners, average path completion,
+  learning time, quiz and practice averages, who needs attention, completion by domain and topic.
+- The student directory shows each student's learning and flags who needs attention (inactive for
+  two weeks, or struggling), with a filter.
+- Each student's profile has a Learning section: progress, mastery and time spent per topic, every
+  quiz attempt (compare two side by side), interview-practice scores and recent activity.
+- **Analytics:** active learners, registrations, average path completion, learning time, quiz and
+  practice performance, score distribution, weak topics, completion per topic and domain, cohorts;
+  filter by dates, cohort, domain, topic and one student; export every student's learning as CSV
+  (audited).
+- Time spent learning counts only while a topic page is visible and the student is active (or a
+  video plays), and the server never credits more than the time that has actually passed.
+
+**Interview practice** (Settings → AI usage; `ai_usage.view` to see, `settings.manage` to change)
+- Switch students' AI feedback on or off and set answers per student per day (default 10).
+- Last week's answers, students, average score and cost. Admins never see transcripts.
+- Models are settings: `IPP_MODEL_TRANSCRIPTION` (speech-to-text), `IPP_MODEL_FEEDBACK`.
+
 **AI layer**
 - Every model call goes through `app/ai/openrouter.py` and is recorded with its cost in
-  `ai_usage_events`, a permanent, append-only ledger.
+  `ai_usage_events`, a permanent, append-only ledger (with the student, for practice feedback).
 
 **Permanent records**
 - The database rejects any change to or deletion of the audit log, sign-in history, AI spend
   ledger, raw source records, job logs and code checks. Sources, runs, content items, content
-  versions and media can't be deleted either, and a version's content can't be changed.
+  versions, media, practice attempts and topic progress can't be deleted either, and a version's
+  content can't be changed. Learning events, quiz attempts and their answers are append-only. (A student deleting a practice try erases its transcript and feedback; the row stays.)
 
 **Security**
 - Separate admin and student identities and sessions, with path-scoped httpOnly cookies.

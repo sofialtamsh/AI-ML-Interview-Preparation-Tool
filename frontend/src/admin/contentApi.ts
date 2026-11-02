@@ -15,10 +15,14 @@ import type {
   GenerateResult,
   JobStatus,
   Page,
+  PilotEvaluation,
+  RatingSummary,
   TaxonomyDomain,
   TopicContent,
+  TopicInsights,
   TransitionAction,
   VersionDetail,
+  VersionQuality,
 } from '../lib/types'
 
 const LIVE_POLL_MS = 2500
@@ -163,6 +167,64 @@ export function useNarrate() {
       api<ContentJob>(`/admin/content/versions/${versionId}/narration`, { method: 'POST', body: { voice } }),
     onSuccess: refresh,
   })
+}
+
+// --- Content quality (Phase 5) ------------------------------------------------------------------
+
+export function useVersionQuality(versionId: string) {
+  return useQuery({
+    queryKey: adminKeys.contentQuality(versionId),
+    queryFn: () => api<VersionQuality>(`/admin/content/versions/${versionId}/quality`),
+  })
+}
+
+export function useStartAiReview() {
+  const refresh = useRefreshContent()
+  return useMutation({
+    mutationFn: ({ versionId, max_cost_usd }: { versionId: string; max_cost_usd: string }) =>
+      api<ContentJob>(`/admin/content/versions/${versionId}/ai-review`, { method: 'POST', body: { max_cost_usd } }),
+    onSuccess: refresh,
+  })
+}
+
+export function useRateVersion(versionId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { scores: Record<string, number>; note?: string }) =>
+      api<RatingSummary>(`/admin/content/versions/${versionId}/ratings`, { method: 'POST', body }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.contentQuality(versionId) })
+      queryClient.invalidateQueries({ queryKey: adminKeys.pilotEvaluation })
+    },
+  })
+}
+
+export function useReviseVersion() {
+  const refresh = useRefreshContent()
+  return useMutation({
+    mutationFn: ({ versionId, ...body }: { versionId: string; instructions: string; use_review: boolean; max_cost_usd: string }) =>
+      api<ContentJob>(`/admin/content/versions/${versionId}/revise`, { method: 'POST', body }),
+    onSuccess: refresh,
+  })
+}
+
+export function useRetryContentJob() {
+  const refresh = useRefreshContent()
+  return useMutation({
+    mutationFn: (id: string) => api<ContentJob>(`/admin/content/jobs/${id}/retry`, { method: 'POST' }),
+    onSuccess: refresh,
+  })
+}
+
+export function useTopicInsights(topicId: string) {
+  return useQuery({
+    queryKey: adminKeys.topicInsights(topicId),
+    queryFn: () => api<TopicInsights>(`/admin/content/topics/${topicId}/insights`),
+  })
+}
+
+export function usePilotEvaluation() {
+  return useQuery({ queryKey: adminKeys.pilotEvaluation, queryFn: () => api<PilotEvaluation>('/admin/content/pilot-evaluation') })
 }
 
 export function useSetExpansion() {

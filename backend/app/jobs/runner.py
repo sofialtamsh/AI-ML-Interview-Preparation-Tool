@@ -70,6 +70,7 @@ def _handlers() -> dict[JobKind, Handler]:
     from app.agents.exploration import run_exploration
     from app.agents.research import run_market_research
     from app.content.generation import run_content_generation, run_content_narration
+    from app.content.review import run_content_review
     from app.sources.service import run_source_fetch
 
     return {
@@ -78,6 +79,7 @@ def _handlers() -> dict[JobKind, Handler]:
         JobKind.MARKET_RESEARCH: run_market_research,
         JobKind.CONTENT_GENERATION: run_content_generation,
         JobKind.CONTENT_NARRATION: run_content_narration,
+        JobKind.CONTENT_REVIEW: run_content_review,
     }
 
 
@@ -187,17 +189,28 @@ def recover_stale_jobs() -> int:
 
 
 class Worker:
-    """Runs jobs in a background thread. Woken immediately when a job is queued in-process, and
-    polls so jobs queued by other processes are picked up too."""
+    """Runs queued work in a background thread. Woken immediately when work is queued
+    in-process, and polls so work queued by other processes is picked up too. By default it runs
+    jobs; practice attempts use their own workers with the same loop."""
 
-    def __init__(self, poll_seconds: float = POLL_SECONDS) -> None:
+    def __init__(
+        self,
+        poll_seconds: float = POLL_SECONDS,
+        *,
+        name: str = "ipp-job-worker",
+        run_one: Callable[[], int] = lambda: run_pending_jobs(limit=1),
+        recover: Callable[[], int] = recover_stale_jobs,
+    ) -> None:
         self._poll = poll_seconds
+        self._name = name
+        self._run_one = run_one
+        self._recover = recover
         self._stop = threading.Event()
         self._wake = threading.Event()
         self._thread: threading.Thread | None = None
 
     def start(self) -> None:
-        self._thread = threading.Thread(target=self._loop, name="ipp-job-worker", daemon=True)
+        self._thread = threading.Thread(target=self._loop, name=self._name, daemon=True)
         self._thread.start()
 
     def stop(self, timeout: float = 10.0) -> None:
@@ -215,13 +228,15 @@ class Worker:
             try:
                 now = utcnow()
                 if last_recovery is None or now - last_recovery > timedelta(minutes=1):
-                    if recovered := recover_stale_jobs():
-                        log.warning("Marked %d interrupted job(s) as failed", recovered)
+                    if recovered := self._recover():
+                        log.warning(
+                            "%s: marked %d interrupted item(s) as failed", self._name, recovered
+                        )
                     last_recovery = now
-                if run_pending_jobs(limit=1):
+                if self._run_one():
                     continue
             except Exception:
-                log.exception("Job worker loop error")
+                log.exception("%s loop error", self._name)
             self._wake.wait(self._poll)
             self._wake.clear()
 

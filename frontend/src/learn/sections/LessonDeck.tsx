@@ -6,6 +6,7 @@ import { cn } from '../../lib/cn'
 import type { Lesson, LessonCard } from '../../lib/types'
 import { FigureView } from '../Figures'
 import { RichText } from '../RichText'
+import type { ProgressReporter } from '.'
 
 const KINDS: Record<LessonCard['kind'], { label: string; tone: string }> = {
   hook: { label: 'Hook', tone: 'from-fuchsia-500 to-brand-600' },
@@ -94,12 +95,22 @@ export function CardView({ card, index, total }: { card: LessonCard; index: numb
   )
 }
 
-export function LessonDeck({ lesson, after }: { lesson: Lesson; after?: ReactNode }) {
+export function LessonDeck({ lesson, after, onProgress }: { lesson: Lesson; after?: ReactNode; onProgress?: ProgressReporter }) {
   const [index, setIndex] = useState(0)
   const [all, setAll] = useState(false)
   const swipe = useRef<number | null>(null)
+  const seen = useRef(0)
   const total = lesson.cards.length
   const last = index === total - 1
+
+  // Report each new furthest card (or all of them when the student shows every card).
+  useEffect(() => {
+    const furthest = all ? total : index + 1
+    if (furthest > seen.current) {
+      seen.current = furthest
+      onProgress?.('lesson_progress', { seen: furthest, of: total })
+    }
+  }, [all, index, total, onProgress])
 
   const go = (next: number) => setIndex(Math.max(0, Math.min(total - 1, next)))
 

@@ -114,6 +114,8 @@ def structured_chat[T: BaseModel](
     messages: list[dict[str, Any]],
     job_id: uuid.UUID | None,
     admin_id: uuid.UUID | None,
+    student_id: uuid.UUID | None = None,
+    practice_attempt_id: uuid.UUID | None = None,
 ) -> T:
     """A chat call whose reply must match `output`. One repair attempt if it doesn't."""
     response_format = {
@@ -128,6 +130,8 @@ def structured_chat[T: BaseModel](
             messages=conversation,
             job_id=job_id,
             admin_id=admin_id,
+            student_id=student_id,
+            practice_attempt_id=practice_attempt_id,
             response_format=response_format,
             provider={"require_parameters": True},
             temperature=0,

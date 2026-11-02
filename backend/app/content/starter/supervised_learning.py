@@ -473,15 +473,14 @@ QUIZ = {
                 "The model is retrained every day",
             ],
             "answer": 0,
-            "explanation": "Supervised means each training example includes its label, so the "
-            "model can compare its guess with the right answer.",
+            "explanation": "Supervised means each training example includes its label, so the model can compare its guess with the right answer.",
         },
         {
             "difficulty": "easy",
             "kind": "scenario",
             "prompt": "Predicting how many minutes a food delivery will take is…",
-            "options": ["Classification", "Regression", "Clustering", "Dimensionality reduction"],
-            "answer": 1,
+            "options": ["Classification", "Dimensionality reduction", "Clustering", "Regression"],
+            "answer": 3,
             "explanation": "The output is a number, so it's regression.",
         },
         {
@@ -495,8 +494,7 @@ QUIZ = {
                 "Because the model can't use all the data at once",
             ],
             "answer": 1,
-            "explanation": "The test set stands in for future, unseen data, so its score is an "
-            "honest estimate.",
+            "explanation": "The test set stands in for future, unseen data, so its score is an honest estimate.",
         },
         {
             "difficulty": "medium",
@@ -504,27 +502,25 @@ QUIZ = {
             "prompt": "Train accuracy 100%, test accuracy 72%. What's the most likely issue?",
             "options": [
                 "Underfitting",
-                "Overfitting",
                 "Too little training time",
+                "Overfitting",
                 "A perfect model",
             ],
-            "answer": 1,
-            "explanation": "A big gap between train and test performance is the classic sign of "
-            "overfitting.",
+            "answer": 2,
+            "explanation": "A big gap between train and test performance is the classic sign of overfitting.",
         },
         {
             "difficulty": "medium",
             "kind": "concept",
             "prompt": "In k-nearest neighbours, what usually happens as k gets very large?",
             "options": [
-                "The boundary gets more jagged",
-                "The model memorises the training data",
                 "The boundary gets smoother and can underfit",
+                "The model memorises the training data",
+                "The boundary gets more jagged",
                 "Training accuracy reaches 100%",
             ],
-            "answer": 2,
-            "explanation": "Averaging over many neighbours smooths the boundary; too much "
-            "smoothing ignores real structure.",
+            "answer": 0,
+            "explanation": "Averaging over many neighbours smooths the boundary; too much smoothing ignores real structure.",
         },
         {
             "difficulty": "medium",
@@ -538,18 +534,15 @@ QUIZ = {
                 "The model's loss during training",
             ],
             "answer": 1,
-            "explanation": "For classifiers, score returns accuracy on the data you pass in, "
-            "here the test set.",
+            "explanation": "For classifiers, score returns accuracy on the data you pass in, here the test set.",
         },
         {
             "difficulty": "hard",
             "kind": "scenario",
-            "prompt": "1% of emails are spam. A model that says 'not spam' for every email has "
-            "what accuracy?",
-            "options": ["1%", "50%", "99%", "It can't be measured"],
-            "answer": 2,
-            "explanation": "It's right on all 99% non-spam emails. That's why accuracy misleads "
-            "on imbalanced data.",
+            "prompt": "1% of emails are spam. A model that says 'not spam' for every email has what accuracy?",
+            "options": ["1%", "50%", "It can't be measured", "99%"],
+            "answer": 3,
+            "explanation": "It's right on all 99% non-spam emails. That's why accuracy misleads on imbalanced data.",
         },
     ]
 }

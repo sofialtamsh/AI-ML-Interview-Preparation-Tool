@@ -1,12 +1,14 @@
-import { CircleCheck, CircleX, RotateCcw } from 'lucide-react'
-import { useState } from 'react'
+import { CircleCheck, CircleX, CloudCheck, RotateCcw } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 
 import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Feedback'
 import { cn } from '../../lib/cn'
-import type { QuizContent } from '../../lib/types'
+import { errorMessage } from '../../lib/api'
+import type { QuizContent, QuizResult } from '../../lib/types'
 import { PythonCode } from '../PythonCode'
 import { RichText } from '../RichText'
+import type { QuizSaver } from '.'
 
 const DIFFICULTY_TONE = { easy: 'success', medium: 'warning', hard: 'danger' } as const
 
@@ -18,12 +20,44 @@ function verdict(score: number, total: number) {
   return { emoji: '🌱', line: 'Good start. Replay the lesson and the playground, then try again.' }
 }
 
-export function QuizSection({ quiz }: { quiz: QuizContent }) {
+type SaveState = { status: 'saving' } | { status: 'saved'; result: QuizResult } | { status: 'error'; message: string }
+
+/** Saves a finished round once, and shows how it went (or how to retry). */
+function SavedNote({ save }: { save: SaveState | null }) {
+  if (!save) return null
+  if (save.status === 'saving') return <p className="mt-3 text-sm text-white/80">Saving your score…</p>
+  if (save.status === 'error') return <p className="mt-3 text-sm font-medium text-white">Couldn&apos;t save this attempt: {save.message}</p>
+  const { result } = save
+  return (
+    <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-sm font-medium">
+      <CloudCheck className="size-4" aria-hidden /> Saved · attempt {result.attempt_number} · your best {Math.round(result.best_pct)}%
+    </p>
+  )
+}
+
+export function QuizSection({ quiz, onFinish }: { quiz: QuizContent; onFinish?: QuizSaver }) {
   const [index, setIndex] = useState(0)
   const [answers, setAnswers] = useState<(number | null)[]>(() => quiz.questions.map(() => null))
+  const [save, setSave] = useState<SaveState | null>(null)
+  const started = useRef(Date.now())
+  // One automatic save per round; after a failure the student retries with "Save again".
+  const attempted = useRef(false)
   const total = quiz.questions.length
   const finished = index >= total
   const score = answers.filter((a, i) => a === quiz.questions[i].answer).length
+
+  const store = () => {
+    if (!onFinish) return
+    attempted.current = true
+    setSave({ status: 'saving' })
+    onFinish(answers, Math.round((Date.now() - started.current) / 1000))
+      .then((result) => setSave({ status: 'saved', result }))
+      .catch((error: unknown) => setSave({ status: 'error', message: errorMessage(error) }))
+  }
+
+  useEffect(() => {
+    if (finished && !attempted.current) store()
+  }) // runs after each render; the ref keeps it to one automatic save per round
 
   if (finished) {
     const { emoji, line } = verdict(score, total)
@@ -38,17 +72,27 @@ export function QuizSection({ quiz }: { quiz: QuizContent }) {
             {score} / {total}
           </p>
           <p className="mt-2 text-white/90">{line}</p>
-          <Button
-            variant="secondary"
-            className="mt-5"
-            icon={<RotateCcw className="size-4" />}
-            onClick={() => {
-              setAnswers(quiz.questions.map(() => null))
-              setIndex(0)
-            }}
-          >
-            Try again
-          </Button>
+          <SavedNote save={save} />
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            {save?.status === 'error' && (
+              <Button variant="secondary" onClick={store}>
+                Save again
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              icon={<RotateCcw className="size-4" />}
+              onClick={() => {
+                setAnswers(quiz.questions.map(() => null))
+                setIndex(0)
+                setSave(null)
+                attempted.current = false
+                started.current = Date.now()
+              }}
+            >
+              Try again
+            </Button>
+          </div>
         </div>
         {missed.length > 0 && (
           <section className="rounded-3xl bg-white p-5 ring-1 ring-slate-200">

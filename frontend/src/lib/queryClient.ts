@@ -29,7 +29,13 @@ export const adminKeys = {
   contentTopic: (id: string) => ['admin', 'content', 'topic', id] as const,
   contentVersion: (id: string) => ['admin', 'content', 'version', id] as const,
   contentJobs: ['admin', 'content', 'jobs'] as const,
+  contentQuality: (versionId: string) => ['admin', 'content', 'quality', versionId] as const,
+  topicInsights: (topicId: string) => ['admin', 'content', 'insights', topicId] as const,
+  pilotEvaluation: ['admin', 'content', 'pilot'] as const,
+  studentLearning: (id: string) => ['admin', 'students', id, 'learning'] as const,
+  analytics: ['admin', 'analytics'] as const,
   taxonomyAdmin: ['admin', 'taxonomy-admin'] as const,
+  practice: ['admin', 'practice'] as const,
 }
 
 export const studentKeys = {
@@ -37,6 +43,11 @@ export const studentKeys = {
   sessions: ['student', 'sessions'] as const,
   learn: ['student', 'learn'] as const,
   topic: (slug: string) => ['student', 'learn', slug] as const,
+  practiceStatus: ['student', 'practice', 'status'] as const,
+  practiceAttempts: (topic: string) => ['student', 'practice', 'attempts', topic] as const,
+  practiceAttempt: (id: string) => ['student', 'practice', 'attempt', id] as const,
+  progress: ['student', 'progress'] as const,
+  topicProgress: (slug: string) => ['student', 'progress', 'topic', slug] as const,
 }
 
 export const queryClient = new QueryClient({

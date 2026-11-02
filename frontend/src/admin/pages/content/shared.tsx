@@ -64,7 +64,7 @@ export function studentView(component: ContentComponent, body: Record<string, un
   return body
 }
 
-/** Recent generation and narration runs, optionally for one topic, each opening its log. */
+/** Recent generation, narration and AI review runs, optionally for one topic, each opening its log. */
 export function ContentRuns({ topicId, pageSize = 6 }: { topicId?: string; pageSize?: number }) {
   const runs = useContentJobs(topicId, pageSize)
   const [open, setOpen] = useState<string | null>(null)
@@ -74,7 +74,7 @@ export function ContentRuns({ topicId, pageSize = 6 }: { topicId?: string; pageS
   if (runs.data.items.length === 0) {
     return (
       <EmptyState icon={<Activity className="size-6" />} title="No runs yet" className="py-8">
-        Generation and narration runs appear here with their log and cost.
+        Generation, narration and AI review runs appear here with their log and cost.
       </EmptyState>
     )
   }

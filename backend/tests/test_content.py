@@ -322,10 +322,12 @@ def test_bulk_steps_report_what_they_skip(admin, db: Session):
 
 def test_students_never_see_where_questions_came_from(admin, make_client, db: Session):
     tid = topic_id(db, SUPERVISED)
+    record = approved_question(db, SUPERVISED)
     interview = copy.deepcopy(STARTER[SUPERVISED]["interview"])
     interview["questions"][0].update(
         origin="actual_interview",
-        source_ref="11111111-1111-1111-1111-111111111111",
+        source_ref=str(record.id),
+        question=record.original_text,
         asked_for_role="ML Engineer",
     )
     version = admin.post(
@@ -342,8 +344,8 @@ def test_students_never_see_where_questions_came_from(admin, make_client, db: Se
     assert items[0]["label"] == "Asked in real interviews"
     assert items[0]["asked_for_role"] == "ML Engineer"
     assert items[1]["label"] == "Practice question" and items[1]["asked_for_role"] is None
-    assert "source_ref" not in response.text and "11111111" not in response.text
-    assert "origin" not in items[0]
+    assert "source_ref" not in response.text and str(record.id) not in response.text
+    assert "Acme" not in response.text and "origin" not in items[0]
 
 
 # --- AI generation ---------------------------------------------------------------------------
@@ -451,7 +453,12 @@ def test_expansion_unlocks_other_topics_and_skips_missing_playgrounds(admin, ai,
     started = admin.post("/api/admin/content/generate", json=body).json()["started"]
     run_pending_jobs()
     job = admin.get(f"/api/admin/agents/jobs/{started[0]['id']}").json()
-    assert job["result"] == {"generated": 1, "failed": 0}
+    assert job["result"] == {
+        "generated": 1,
+        "failed": 0,
+        "generated_components": ["lesson"],
+        "failed_components": [],
+    }
     assert any("Skipped the playground" in e["message"] for e in job["events"])
     audit = db.scalar(select(AuditLog).where(AuditLog.action == "content.expansion_decided"))
     assert audit.details == {"approved": {"from": False, "to": True}}

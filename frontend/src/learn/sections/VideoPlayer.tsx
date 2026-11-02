@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { cn } from '../../lib/cn'
 import type { VideoContent } from '../../lib/types'
 import { FigureView } from '../Figures'
+import type { ProgressReporter } from '.'
 
 const canSpeak = () => typeof window !== 'undefined' && 'speechSynthesis' in window
 
@@ -15,7 +16,7 @@ const clock = (ms: number) => {
 /** A narrated explainer built from scenes: a figure, a big caption and the narration.
  * Plays recorded narration when it exists; otherwise it can read aloud with the device voice,
  * or simply auto-advance with captions. */
-export function VideoPlayer({ video, audioUrl }: { video: VideoContent; audioUrl?: (id: string) => string }) {
+export function VideoPlayer({ video, audioUrl, onProgress }: { video: VideoContent; audioUrl?: (id: string) => string; onProgress?: ProgressReporter }) {
   const scenes = video.scenes
   const [index, setIndex] = useState(0)
   const [playing, setPlaying] = useState(false)
@@ -23,6 +24,16 @@ export function VideoPlayer({ video, audioUrl }: { video: VideoContent; audioUrl
   const [elapsed, setElapsed] = useState(0)
   const [captions, setCaptions] = useState(true)
   const [deviceVoice, setDeviceVoice] = useState(false)
+  const reached = useRef(0)
+  useEffect(() => {
+    if (index + 1 > reached.current) {
+      reached.current = index + 1
+      onProgress?.('video_progress', { scene: index + 1, of: video.scenes.length })
+    }
+  }, [index, video.scenes.length, onProgress])
+  useEffect(() => {
+    if (finished) onProgress?.('section_done')
+  }, [finished, onProgress])
   const audioRef = useRef<HTMLAudioElement>(null)
 
   const scene = scenes[index]

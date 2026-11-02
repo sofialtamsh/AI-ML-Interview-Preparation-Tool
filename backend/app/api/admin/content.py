@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.ai import openrouter
-from app.api.admin.agents import CONTENT_KINDS, agent_jobs, queue_job, request_stop
+from app.api.admin.agents import CONTENT_KINDS, agent_jobs, may_control, queue_job, request_stop
 from app.auth.deps import AdminContext, require_any_permission, require_permission
 from app.auth.permissions import Perm
 from app.content.generation import TOPIC_WIDGETS
@@ -561,6 +561,7 @@ def content_jobs(db: Session, jobs: list[Job]) -> list[ContentJob]:
         ContentJob(
             **summary.model_dump(),
             topic=topic_ref(topics[job.topic_id]) if job.topic_id in topics else None,
+            batch_id=job.batch_id,
         )
         for summary, job in zip(agent_jobs(db, jobs), jobs, strict=True)
     ]
@@ -576,14 +577,17 @@ def _get_content_job(db: Session, job_id: uuid.UUID) -> Job:
 @router.get("/jobs", response_model=Page[ContentJob], dependencies=[Depends(can_read)])
 def list_content_jobs(
     topic_id: uuid.UUID | None = None,
+    batch_id: uuid.UUID | None = None,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1, le=50),
     db: Session = Depends(get_db),
 ) -> Page[ContentJob]:
-    """Generation and narration runs, visible to everyone who works on content."""
+    """Generation, narration and review runs, visible to everyone who works on content."""
     conditions = [Job.kind.in_(CONTENT_KINDS)]
     if topic_id is not None:
         conditions.append(Job.topic_id == topic_id)
+    if batch_id is not None:
+        conditions.append(Job.batch_id == batch_id)
     total = db.scalar(select(func.count()).select_from(Job).where(*conditions)) or 0
     jobs = db.scalars(
         select(Job)
@@ -612,10 +616,14 @@ def get_content_job(job_id: uuid.UUID, db: Session = Depends(get_db)) -> Content
 def cancel_content_job(
     job_id: uuid.UUID,
     request: Request,
-    ctx: AdminContext = Depends(can_generate),
+    ctx: AdminContext = Depends(can_read),
     db: Session = Depends(get_db),
 ) -> ContentJob:
     job = _get_content_job(db, job_id)
+    if not may_control(ctx, job):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "You do not have permission to perform this action."
+        )
     request_stop(db, job)
     record_audit(db, request, ctx, "content.run_stopped", "job", job.id, {"kind": job.kind.value})
     db.commit()

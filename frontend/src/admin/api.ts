@@ -8,7 +8,9 @@ import type {
   AdminUser,
   AiProviderStatus,
   AiUsageReport,
+  AnalyticsReport,
   AuditLogEntry,
+  PracticeAdminView,
   AuthMethod,
   CohortWithCount,
   ConnectorType,
@@ -25,6 +27,7 @@ import type {
   SourceRecord,
   SourceRecordDetail,
   StudentDetail,
+  StudentLearning,
   StudentListItem,
   StudentStatus,
 } from '../lib/types'
@@ -98,18 +101,21 @@ export type StudentFilters = {
   q: string
   status: StudentStatus | ''
   cohort_id: string
+  attention?: '' | 'any' | 'inactive' | 'struggling'
   page: number
 }
 
-export function useStudents(filters: StudentFilters, pageSize = 20) {
+export function useStudents(filters: StudentFilters, pageSize = 20, enabled = true) {
   const params = new URLSearchParams({ page: String(filters.page), page_size: String(pageSize) })
   if (filters.q.trim()) params.set('q', filters.q.trim())
   if (filters.status) params.set('status', filters.status)
   if (filters.cohort_id) params.set('cohort_id', filters.cohort_id)
+  if (filters.attention) params.set('attention', filters.attention)
   return useQuery({
     queryKey: [...adminKeys.students, 'list', params.toString()],
     queryFn: ({ signal }) => api<Page<StudentListItem>>(`/admin/students?${params}`, { signal }),
     placeholderData: keepPreviousData,
+    enabled,
   })
 }
 
@@ -117,6 +123,45 @@ export function useStudent(id: string) {
   return useQuery({
     queryKey: adminKeys.student(id),
     queryFn: () => api<StudentDetail>(`/admin/students/${id}`),
+  })
+}
+
+/** A student's learning: progress, quiz attempts, practice scores and recent activity. */
+export function useStudentLearning(id: string) {
+  return useQuery({
+    queryKey: adminKeys.studentLearning(id),
+    queryFn: () => api<StudentLearning>(`/admin/students/${id}/learning`),
+  })
+}
+
+export type AnalyticsFilters = { start: string; end: string; cohort_id: string; domain: string; topic: string; student_id: string }
+
+const isoDay = (date: Date) => date.toISOString().slice(0, 10)
+export const daysAgo = (days: number) => isoDay(new Date(Date.now() - days * 86_400_000))
+export const today = () => isoDay(new Date())
+
+/** The last 30 days, everyone: the Analytics page's default, also shown on the Overview. */
+export const defaultAnalyticsFilters = (): AnalyticsFilters => ({
+  start: daysAgo(29),
+  end: today(),
+  cohort_id: '',
+  domain: '',
+  topic: '',
+  student_id: '',
+})
+
+export function analyticsParams(filters: AnalyticsFilters): URLSearchParams {
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(filters)) if (value) params.set(key, value)
+  return params
+}
+
+export function useAnalytics(filters: AnalyticsFilters) {
+  const params = analyticsParams(filters)
+  return useQuery({
+    queryKey: [...adminKeys.analytics, params.toString()],
+    queryFn: () => api<AnalyticsReport>(`/admin/analytics?${params}`),
+    placeholderData: keepPreviousData,
   })
 }
 
@@ -240,6 +285,21 @@ export function useAiProviderStatus() {
     queryKey: adminKeys.aiProvider,
     queryFn: () => api<AiProviderStatus>('/admin/ai-usage/provider'),
     staleTime: 60_000,
+  })
+}
+
+// --- Interview practice feedback -------------------------------------------------------------
+
+export function usePracticeSettings() {
+  return useQuery({ queryKey: adminKeys.practice, queryFn: () => api<PracticeAdminView>('/admin/practice/settings') })
+}
+
+export function useUpdatePracticeSettings() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { enabled: boolean; daily_limit: number }) =>
+      api<PracticeAdminView>('/admin/practice/settings', { method: 'PUT', body }),
+    onSuccess: (view) => queryClient.setQueryData(adminKeys.practice, view),
   })
 }
 

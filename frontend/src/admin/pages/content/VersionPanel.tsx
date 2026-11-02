@@ -1,4 +1,4 @@
-import { CircleCheck, CircleX, FileJson, GitCompareArrows, History, Mic, Play, Eye } from 'lucide-react'
+import { CircleCheck, CircleX, Eye, FileJson, GitCompareArrows, History, Mic, Play, ShieldCheck, Sparkles } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
@@ -14,7 +14,18 @@ import { formatDateTime, timeAgo } from '../../../lib/format'
 import { PYODIDE_RUNTIME, runPython } from '../../../lib/pyodide'
 import type { ContentOverview, ContentComponent, TransitionAction, VersionDetail, VersionStatus, VersionSummary } from '../../../lib/types'
 import { useCan } from '../../api'
-import { adminMediaUrl, useNarrate, useRecordCodeCheck, useRestoreVersion, useSaveVersion, useTransition, useVersion } from '../../contentApi'
+import {
+  adminMediaUrl,
+  useNarrate,
+  useRecordCodeCheck,
+  useRestoreVersion,
+  useReviseVersion,
+  useSaveVersion,
+  useTransition,
+  useVersion,
+  useVersionQuality,
+} from '../../contentApi'
+import { QualityPanel } from './QualityPanel'
 import { ORIGIN_LABELS, VersionStatusBadge, studentView } from './shared'
 
 type ActionRule = {
@@ -37,7 +48,7 @@ const ACTIONS: ActionRule[] = [
   { action: 'archive', label: 'Archive', from: ['draft', 'under_review', 'approved', 'rejected'], needs: ['content.publish'], variant: 'secondary' },
 ]
 
-type View = 'preview' | 'json' | 'compare'
+type View = 'preview' | 'quality' | 'json' | 'compare'
 
 export function VersionPanel({
   topicId,
@@ -55,8 +66,10 @@ export function VersionPanel({
   onSelect: (id: string) => void
 }) {
   const version = useVersion(versionId)
+  const quality = useVersionQuality(versionId)
   const [view, setView] = useState<View>('preview')
   const [editing, setEditing] = useState(false)
+  const [revising, setRevising] = useState(false)
 
   if (version.isPending) return <Skeleton className="h-96 rounded-2xl" />
   if (version.isError) return <Alert>{errorMessage(version.error)}</Alert>
@@ -67,7 +80,14 @@ export function VersionPanel({
     <div className="min-w-0 space-y-4">
       <Card className="p-5">
         <VersionHeader version={data} />
-        <VersionActions version={data} latest={latest} onEdit={() => setEditing(true)} onSelect={onSelect} />
+        <VersionActions
+          version={data}
+          latest={latest}
+          aiConfigured={!!overview?.ai_configured}
+          onEdit={() => setEditing(true)}
+          onRevise={() => setRevising(true)}
+          onSelect={onSelect}
+        />
       </Card>
 
       {component === 'python' && <CodeCheckPanel version={data} />}
@@ -78,6 +98,7 @@ export function VersionPanel({
           {(
             [
               ['preview', 'Student preview', Eye],
+              ['quality', 'Quality', ShieldCheck],
               ['json', 'Content (JSON)', FileJson],
               ['compare', 'Compare versions', GitCompareArrows],
             ] as const
@@ -96,6 +117,16 @@ export function VersionPanel({
             >
               <Icon className="size-4" aria-hidden />
               {label}
+              {key === 'quality' && quality.data && (quality.data.automated.errors > 0 || quality.data.automated.warnings > 0) && (
+                <span
+                  className={cn(
+                    'rounded-full px-1.5 text-xs font-bold tabular-nums',
+                    quality.data.automated.errors ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-800',
+                  )}
+                >
+                  {quality.data.automated.errors || quality.data.automated.warnings}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -111,11 +142,13 @@ export function VersionPanel({
               {JSON.stringify(data.body, null, 2)}
             </pre>
           )}
+          {view === 'quality' && <QualityPanel version={data} />}
           {view === 'compare' && <Compare version={data} versions={versions} />}
         </div>
       </Card>
 
       {editing && <EditDialog topicId={topicId} component={component} version={data} onClose={() => setEditing(false)} onSaved={onSelect} />}
+      {revising && <ReviseDialog version={data} hasReview={!!quality.data?.ai_reviews.length} onClose={() => setRevising(false)} />}
     </div>
   )
 }
@@ -144,11 +177,26 @@ function VersionHeader({ version }: { version: VersionDetail }) {
   )
 }
 
-function VersionActions({ version, latest, onEdit, onSelect }: { version: VersionDetail; latest: boolean; onEdit: () => void; onSelect: (id: string) => void }) {
+function VersionActions({
+  version,
+  latest,
+  aiConfigured,
+  onEdit,
+  onRevise,
+  onSelect,
+}: {
+  version: VersionDetail
+  latest: boolean
+  aiConfigured: boolean
+  onEdit: () => void
+  onRevise: () => void
+  onSelect: (id: string) => void
+}) {
   const transition = useTransition()
   const restore = useRestoreVersion()
   const toast = useToast()
   const canEdit = useCan('content.generate', 'content.review')
+  const canGenerate = useCan('content.generate')
   const permissions = {
     'content.generate': useCan('content.generate'),
     'content.review': useCan('content.review'),
@@ -196,6 +244,11 @@ function VersionActions({ version, latest, onEdit, onSelect }: { version: Versio
             Edit as new draft
           </Button>
         )}
+        {canGenerate && aiConfigured && (
+          <Button size="sm" variant="secondary" icon={<Sparkles className="size-4" />} onClick={onRevise}>
+            Revise with AI
+          </Button>
+        )}
         {canEdit && !latest && (
           <Button
             size="sm"
@@ -235,6 +288,70 @@ function VersionActions({ version, latest, onEdit, onSelect }: { version: Versio
         <TextAreaField label="Note" value={note} maxLength={1000} rows={3} onChange={(e) => setNote(e.target.value)} />
       </Dialog>
     </div>
+  )
+}
+
+/** Ask the AI for a new draft of this version, following instructions and/or its AI review. */
+function ReviseDialog({ version, hasReview, onClose }: { version: VersionDetail; hasReview: boolean; onClose: () => void }) {
+  const revise = useReviseVersion()
+  const toast = useToast()
+  const [instructions, setInstructions] = useState('')
+  const [useReview, setUseReview] = useState(hasReview)
+  const [limit, setLimit] = useState('1')
+  const ready = instructions.trim().length > 0 || useReview
+  return (
+    <Dialog
+      open
+      onClose={onClose}
+      title={`Revise version ${version.number} with AI`}
+      description="The AI rewrites this version into a new draft. This version stays as it is, and the draft goes through review like any other."
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            icon={<Sparkles className="size-4" />}
+            disabled={!ready}
+            loading={revise.isPending}
+            onClick={() =>
+              revise.mutate(
+                { versionId: version.id, instructions: instructions.trim(), use_review: useReview, max_cost_usd: limit },
+                {
+                  onSuccess: () => {
+                    toast.success('Revision started. The new draft appears in Versions when it is ready.')
+                    onClose()
+                  },
+                  onError: (e) => toast.error(errorMessage(e)),
+                },
+              )
+            }
+          >
+            Start revision
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <TextAreaField
+          label="What should change?"
+          hint="For example: simplify card 3, make quiz question 2 harder, add a cricket analogy."
+          rows={4}
+          maxLength={2000}
+          value={instructions}
+          onChange={(e) => setInstructions(e.target.value)}
+        />
+        <label className={cn('flex items-center gap-2 text-sm', hasReview ? 'text-slate-700' : 'text-slate-400')}>
+          <input type="checkbox" checked={useReview} disabled={!hasReview} onChange={(e) => setUseReview(e.target.checked)} className="size-4 accent-brand-600" />
+          Also fix what the latest AI review found{!hasReview && ' (run an AI review on the Quality tab first)'}
+        </label>
+        <SelectField label="Spending limit" value={limit} onChange={(e) => setLimit(e.target.value)}>
+          <option value="0.5">$0.50</option>
+          <option value="1">$1.00</option>
+          <option value="2">$2.00</option>
+        </SelectField>
+      </div>
+    </Dialog>
   )
 }
 

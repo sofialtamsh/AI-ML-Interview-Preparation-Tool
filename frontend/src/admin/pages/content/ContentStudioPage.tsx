@@ -12,7 +12,8 @@ import { errorMessage } from '../../../lib/api'
 import { cn } from '../../../lib/cn'
 import type { ContentComponent, ContentOverview } from '../../../lib/types'
 import { useCan } from '../../api'
-import { useContentOverview, useGenerate, useSetExpansion } from '../../contentApi'
+import { useContentOverview, useGenerate, usePilotEvaluation, useSetExpansion } from '../../contentApi'
+import { PilotEvaluationCard, pilotSummary } from './PilotEvaluation'
 import { ContentRuns, VERSION_STATUS } from './shared'
 
 export default function ContentStudioPage() {
@@ -36,6 +37,7 @@ export default function ContentStudioPage() {
       {overview.data && (
         <>
           <GateCard overview={overview.data} />
+          <PilotEvaluationCard />
           {!overview.data.ai_configured && (
             <Alert tone="info">
               The AI provider isn&apos;t connected, so generation and narration are off. Starter drafts can still be
@@ -49,7 +51,7 @@ export default function ContentStudioPage() {
       )}
 
       <Card className="overflow-hidden">
-        <CardHeader title="Recent runs" description="Generation and narration jobs. Click one for its log." />
+        <CardHeader title="Recent runs" description="Generation, narration and AI review jobs. Click one for its log, or to retry what didn't finish." />
         <ContentRuns />
       </Card>
     </div>
@@ -61,6 +63,7 @@ function GateCard({ overview }: { overview: ContentOverview }) {
   const setExpansion = useSetExpansion()
   const toast = useToast()
   const [confirming, setConfirming] = useState(false)
+  const evaluation = usePilotEvaluation()
   const pilots = overview.topics.filter((t) => t.topic.is_pilot).length
   const approved = overview.expansion_approved
 
@@ -117,6 +120,11 @@ function GateCard({ overview }: { overview: ContentOverview }) {
           </>
         }
       >
+        {!approved && evaluation.data && (
+          <p className="mb-3 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700 ring-1 ring-slate-200">
+            <span className="font-semibold">Pilot so far:</span> {pilotSummary(evaluation.data)}.
+          </p>
+        )}
         <p className="text-sm text-slate-600">This decision is recorded in the audit log.</p>
       </Dialog>
     </Card>
@@ -126,7 +134,10 @@ function GateCard({ overview }: { overview: ContentOverview }) {
 function TopicGrid({ overview }: { overview: ContentOverview }) {
   return (
     <Card className="overflow-hidden">
-      <CardHeader title="Topics" description="Latest version of each component. A green ring means students can see it." />
+      <CardHeader
+        title="Topics"
+        description="Latest version of each component. A green ring means it's published. Students see a topic once its Lesson is published."
+      />
       <ul className="grid gap-px bg-slate-100 sm:grid-cols-2">
         {overview.topics.map(({ topic, statuses, live, published }) => (
           <li key={topic.id} className="bg-white">
@@ -139,6 +150,7 @@ function TopicGrid({ overview }: { overview: ContentOverview }) {
                 <div className="flex shrink-0 flex-col items-end gap-1">
                   {topic.is_pilot && <Badge tone="brand">Pilot</Badge>}
                   <span className="text-xs text-slate-500 tabular-nums">{published}/7 live</span>
+                  {published > 0 && !live.includes('lesson') && <Badge tone="warning">Hidden: lesson not published</Badge>}
                 </div>
               </div>
               <ul className="mt-3 flex flex-wrap gap-1.5">
@@ -175,7 +187,7 @@ function TopicGrid({ overview }: { overview: ContentOverview }) {
         ))}
         <li className="inline-flex items-center gap-1.5">
           <span className="size-2.5 rounded-full ring-2 ring-emerald-400" aria-hidden />
-          Live for students
+          Published (students see it once the lesson is published)
         </li>
       </ul>
     </Card>

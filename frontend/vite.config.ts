@@ -11,7 +11,9 @@ export default defineConfig({
     port: 5173,
     // Same-origin API in development, so session cookies and the CSRF header need no CORS.
     // IPP_API_PROXY points a second dev server at another API instance (e.g. a test database).
-    proxy: { '/api': { target: process.env.IPP_API_PROXY ?? 'http://localhost:8010' } },
+    // 127.0.0.1, not localhost: the API listens on IPv4, and on Windows a refused IPv6 localhost
+    // connection attempt costs about two seconds.
+    proxy: { '/api': { target: process.env.IPP_API_PROXY ?? 'http://127.0.0.1:8010' } },
   },
   test: {
     environment: 'jsdom',

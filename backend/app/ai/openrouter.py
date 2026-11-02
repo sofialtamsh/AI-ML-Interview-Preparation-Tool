@@ -4,6 +4,7 @@ Every billed call is written to `ai_usage_events` in its own transaction, so spe
 when the job that made the call fails afterwards. Errors never include the API key.
 """
 
+import base64
 import logging
 import time
 import uuid
@@ -47,6 +48,22 @@ class ChatResult:
     citations: list[dict[str, str]] = field(default_factory=list)
 
 
+@dataclass(frozen=True)
+class TranscriptSegment:
+    start: float
+    end: float
+    text: str
+
+
+@dataclass(frozen=True)
+class TranscriptResult:
+    text: str
+    model: str
+    cost_usd: Decimal
+    # Timed segments, when the provider returns them (used to measure pauses).
+    segments: list[TranscriptSegment] = field(default_factory=list)
+
+
 class KeyBudget(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -80,6 +97,8 @@ def record_usage(
     output_tokens: int | None = None,
     admin_id: uuid.UUID | None = None,
     job_id: uuid.UUID | None = None,
+    student_id: uuid.UUID | None = None,
+    practice_attempt_id: uuid.UUID | None = None,
 ) -> None:
     """Writes one ledger row in its own transaction: money spent stays recorded."""
     with SessionLocal() as db:
@@ -94,6 +113,8 @@ def record_usage(
                 cost_usd=cost_usd,
                 triggered_by_admin_id=admin_id,
                 job_id=job_id,
+                triggered_by_student_id=student_id,
+                practice_attempt_id=practice_attempt_id,
             )
         )
         db.commit()
@@ -160,6 +181,8 @@ class OpenRouterClient:
         messages: list[dict[str, Any]],
         admin_id: uuid.UUID | None = None,
         job_id: uuid.UUID | None = None,
+        student_id: uuid.UUID | None = None,
+        practice_attempt_id: uuid.UUID | None = None,
         **options: Any,
     ) -> ChatResult:
         """One chat completion. `feature` names what the platform was doing, for spend reports."""
@@ -184,6 +207,8 @@ class OpenRouterClient:
             output_tokens=usage.get("completion_tokens"),
             admin_id=admin_id,
             job_id=job_id,
+            student_id=student_id,
+            practice_attempt_id=practice_attempt_id,
         )
         try:
             message = body["choices"][0]["message"]
@@ -238,6 +263,68 @@ class OpenRouterClient:
         )
         return response.content, response.headers.get("content-type", "audio/mpeg")
 
+    def transcribe(
+        self,
+        *,
+        feature: str,
+        model: str,
+        audio: bytes,
+        audio_format: str,
+        language: str | None = "en",
+        student_id: uuid.UUID | None = None,
+        practice_attempt_id: uuid.UUID | None = None,
+    ) -> TranscriptResult:
+        """Speech to text. Asks for timed segments first; providers that only return plain text
+        reject that with a 400 (unbilled), and the call is repeated without it."""
+        request: dict[str, Any] = {
+            "model": model,
+            "input_audio": {"data": base64.b64encode(audio).decode(), "format": audio_format},
+            "response_format": "verbose_json",
+            "timestamp_granularities": ["segment"],
+        }
+        if language:
+            request["language"] = language
+        try:
+            response = self._send("POST", "/audio/transcriptions", json=request)
+        except AiProviderError as exc:
+            if exc.status_code != 400:
+                raise
+            del request["response_format"], request["timestamp_granularities"]
+            response = self._send("POST", "/audio/transcriptions", json=request)
+        try:
+            body = response.json()
+        except ValueError as exc:
+            raise AiProviderError("OpenRouter returned a response that is not JSON.") from exc
+        if not isinstance(body, dict):
+            raise AiProviderError("OpenRouter returned an unexpected transcription response.")
+
+        usage = body.get("usage") if isinstance(body.get("usage"), dict) else {}
+        generation_id = response.headers.get("x-generation-id")
+        cost = usage.get("cost")
+        if cost is None and generation_id:
+            cost = self._generation_cost(generation_id)
+        if cost is None:
+            log.warning("OpenRouter reported no cost for transcription %s", generation_id)
+        record_usage(
+            feature=feature,
+            model=model,
+            cost_usd=Decimal(str(cost or 0)),
+            generation_id=generation_id,
+            input_tokens=usage.get("input_tokens"),
+            output_tokens=usage.get("output_tokens"),
+            student_id=student_id,
+            practice_attempt_id=practice_attempt_id,
+        )
+        text = body.get("text")
+        if not isinstance(text, str):
+            raise AiProviderError("OpenRouter returned a transcription without text.")
+        return TranscriptResult(
+            text=text.strip(),
+            model=model,
+            cost_usd=Decimal(str(cost or 0)),
+            segments=_segments(body.get("segments")),
+        )
+
     def _generation_cost(self, generation_id: str) -> Any:
         try:
             return self._request("GET", "/generation", params={"id": generation_id})["data"].get(
@@ -266,6 +353,19 @@ def _citations(annotations: Any) -> list[dict[str, str]]:
                 "content": str(cited.get("content") or ""),
             }
     return list(found.values())
+
+
+def _segments(raw: Any) -> list[TranscriptSegment]:
+    segments = []
+    for item in raw if isinstance(raw, list) else []:
+        try:
+            start, end = float(item["start"]), float(item["end"])
+            text = str(item.get("text") or "").strip()
+        except (KeyError, TypeError, ValueError):
+            continue
+        if 0 <= start <= end:
+            segments.append(TranscriptSegment(start, end, text))
+    return sorted(segments, key=lambda s: s.start)
 
 
 def make_ai_client() -> OpenRouterClient | None:

@@ -294,7 +294,7 @@ COMPONENT_ORDER = [
     Component.PLAYGROUND,
     Component.VIDEO,
     Component.PYTHON,
-    Component.INTERVIEW,
     Component.QUIZ,
+    Component.INTERVIEW,
     Component.REVISION,
 ]

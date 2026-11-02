@@ -148,6 +148,23 @@ class StudentListItem(ApiModel):
         )
 
 
+class LearningSnapshot(ApiModel):
+    last_active_at: datetime | None
+    topics_started: int
+    topics_completed: int
+    learning_seconds: int
+    quiz_attempts: int
+    quiz_average: float | None
+    practice_answers: int
+    practice_average: float | None
+    # "inactive" (no learning for two weeks) and/or "struggling" (low quiz or practice scores)
+    flags: list[str]
+
+
+class StudentRow(StudentListItem):
+    learning: LearningSnapshot
+
+
 class LoginEventOut(ApiModel):
     created_at: datetime
     success: bool

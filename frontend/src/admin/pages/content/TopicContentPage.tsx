@@ -14,8 +14,30 @@ import { timeAgo } from '../../../lib/format'
 import type { ContentComponent, TopicContent } from '../../../lib/types'
 import { useCan } from '../../api'
 import { useBulkTransition, useContentOverview, useGenerate, useTopicContent } from '../../contentApi'
+import { TopicInsightsCard } from './PilotEvaluation'
 import { ContentRuns, ORIGIN_LABELS, VERSION_STATUS, VersionStatusBadge } from './shared'
 import { VersionPanel } from './VersionPanel'
+
+/** Whether students can see this topic yet. The published lesson is the topic's entry point. */
+export function StudentVisibility({ topic }: { topic: TopicContent }) {
+  const live = SECTION_ORDER.filter((key) => topic.components.some((c) => c.component === key && c.published_number !== null))
+  const names = live.map((key) => SECTIONS[key].label).join(', ')
+  if (live.includes('lesson')) {
+    return (
+      <Alert tone="success">
+        Students can see this topic in Explore, with these tabs: {names}.
+        {!live.includes('interview') && ' Publish Interview prep to add answer practice with AI feedback.'}
+      </Alert>
+    )
+  }
+  return (
+    <Alert tone="info">
+      <strong>Students can&apos;t see this topic yet.</strong> It appears in Explore once its <strong>Lesson cards</strong> are published; every other
+      published component then shows up as its own tab.
+      {live.length > 0 && ` Published so far: ${names}.`}
+    </Alert>
+  )
+}
 
 export default function TopicContentPage() {
   const { topicId = '' } = useParams()
@@ -58,6 +80,8 @@ export default function TopicContentPage() {
           <TopicActions topic={data} aiConfigured={!!overview.data?.ai_configured} />
         </div>
       </header>
+
+      <StudentVisibility topic={data} />
 
       <div className="rounded-2xl bg-white p-1.5 ring-1 ring-slate-200">
         <TabScroller label="Components" activeKey={component}>
@@ -133,8 +157,10 @@ export default function TopicContentPage() {
         </div>
       )}
 
+      <TopicInsightsCard topicId={topicId} />
+
       <Card className="overflow-hidden">
-        <CardHeader title="Runs for this topic" description="Generation and narration jobs, with their log and cost." />
+        <CardHeader title="Runs for this topic" description="Generation, narration and AI review jobs, with their log and cost." />
         <ContentRuns topicId={topicId} pageSize={5} />
       </Card>
     </div>

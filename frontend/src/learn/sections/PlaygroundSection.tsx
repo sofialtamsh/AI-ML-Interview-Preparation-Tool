@@ -5,8 +5,9 @@ import { cn } from '../../lib/cn'
 import type { PlaygroundContent } from '../../lib/types'
 import { RichText } from '../RichText'
 import { WIDGET_COMPONENTS } from '../widgets'
+import type { ProgressReporter } from '.'
 
-export function PlaygroundSection({ playground }: { playground: PlaygroundContent }) {
+export function PlaygroundSection({ playground, onProgress }: { playground: PlaygroundContent; onProgress?: ProgressReporter }) {
   const Widget = WIDGET_COMPONENTS[playground.widget]
   const [hints, setHints] = useState<Set<number>>(new Set())
   const [done, setDone] = useState<Set<number>>(new Set())
@@ -83,7 +84,10 @@ export function PlaygroundSection({ playground }: { playground: PlaygroundConten
                         <button
                           type="button"
                           className="rounded-lg bg-slate-900 px-2.5 py-1 text-xs font-semibold text-white hover:bg-slate-700"
-                          onClick={() => setDone((s) => toggle(s, i))}
+                          onClick={() => {
+                            setDone((s) => toggle(s, i))
+                            onProgress?.('playground_task', { task: i, of: playground.tasks.length })
+                          }}
                         >
                           I tried it, show the insight
                         </button>

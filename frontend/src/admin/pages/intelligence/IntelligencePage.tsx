@@ -12,6 +12,7 @@ import { errorMessage } from '../../../lib/api'
 import { cn } from '../../../lib/cn'
 import { formatCount, formatDay, timeAgo } from '../../../lib/format'
 import type { InterviewQuestion, TopicInsight } from '../../../lib/types'
+import { useDebounced } from '../../../lib/useDebounced'
 import { useCan } from '../../api'
 import {
   useBulkReview,
@@ -26,15 +27,6 @@ import { SIGNALS, TrendBadge } from '../agents/shared'
 import { QuestionDialog } from './QuestionDialog'
 
 type Tab = 'review' | 'approved' | 'topics'
-
-function useDebounced(value: string, ms = 300) {
-  const [debounced, setDebounced] = useState(value)
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebounced(value), ms)
-    return () => window.clearTimeout(timer)
-  }, [value, ms])
-  return debounced
-}
 
 function SearchBox({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
   return (

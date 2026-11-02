@@ -25,6 +25,7 @@ const AdminChangePassword = lazy(() => import('./admin/pages/ChangePasswordPage'
 const AdminOverview = lazy(() => import('./admin/pages/OverviewPage'))
 const AdminStudents = lazy(() => import('./admin/pages/StudentsPage'))
 const AdminStudentDetail = lazy(() => import('./admin/pages/StudentDetailPage'))
+const AdminAnalytics = lazy(() => import('./admin/pages/AnalyticsPage'))
 const AdminSources = lazy(() => import('./admin/pages/sources/SourcesPage'))
 const AdminSourceDetail = lazy(() => import('./admin/pages/sources/SourceDetailPage'))
 const AdminExploration = lazy(() => import('./admin/pages/agents/ExplorationPage'))
@@ -101,6 +102,7 @@ export const router = createBrowserRouter([
           { index: true, element: <AdminOverview /> },
           { path: 'students', element: allow(['students.view'], <AdminStudents />) },
           { path: 'students/:id', element: allow(['students.view'], <AdminStudentDetail />) },
+          { path: 'analytics', element: allow(['analytics.view'], <AdminAnalytics />) },
           { path: 'sources', element: allow(['sources.view'], <AdminSources />) },
           { path: 'sources/:id', element: allow(['sources.view'], <AdminSourceDetail />) },
           { path: 'agents/exploration', element: allow(['agents.view'], <AdminExploration />) },

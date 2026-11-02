@@ -10,6 +10,7 @@ from app.api import admin, health, student
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.jobs.runner import start_worker, stop_worker
+from app.practice.service import start_practice_workers, stop_practice_workers
 
 
 class SecurityHeadersMiddleware:
@@ -39,13 +40,17 @@ class SecurityHeadersMiddleware:
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     # Background jobs only ever start from an explicit admin action; the worker just runs them.
-    worker = get_settings().embedded_worker
+    # Practice attempts (a student's own "get feedback") have their own workers.
+    settings = get_settings()
+    worker = settings.embedded_worker
     if worker:
         start_worker()
+        start_practice_workers(settings.practice_workers)
     try:
         yield
     finally:
         if worker:
+            stop_practice_workers()
             stop_worker()
 
 

@@ -3,11 +3,14 @@ from fastapi import APIRouter, Depends
 from app.api.admin import (
     agents,
     ai_usage,
+    analytics,
     audit,
     auth,
     content,
+    content_quality,
     intelligence,
     overview,
+    practice,
     research,
     sources,
     students,
@@ -28,4 +31,7 @@ router.include_router(agents.router)
 router.include_router(intelligence.router)
 router.include_router(research.router)
 router.include_router(content.router)
+router.include_router(content_quality.router)
 router.include_router(taxonomy.router)
+router.include_router(practice.router)
+router.include_router(analytics.router)

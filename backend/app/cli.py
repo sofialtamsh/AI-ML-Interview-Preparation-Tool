@@ -96,14 +96,18 @@ def run_worker() -> None:
     from app.core.config import get_settings
     from app.core.logging import configure_logging
     from app.jobs.runner import start_worker, stop_worker
+    from app.practice.service import start_practice_workers, stop_practice_workers
 
-    configure_logging(get_settings().log_level)
+    settings = get_settings()
+    configure_logging(settings.log_level)
     stopped = threading.Event()
     signal.signal(signal.SIGINT, lambda *_: stopped.set())
     signal.signal(signal.SIGTERM, lambda *_: stopped.set())
     start_worker()
-    print("Job worker running. Press Ctrl+C to stop.")
+    start_practice_workers(settings.practice_workers)
+    print("Job and practice workers running. Press Ctrl+C to stop.")
     stopped.wait()
+    stop_practice_workers()
     stop_worker()
 
 
@@ -119,7 +123,7 @@ def main() -> None:
     commands.add_parser(
         "rotate-credentials", help="Re-encrypt stored source credentials with the newest key"
     )
-    commands.add_parser("run-worker", help="Run background jobs in this process")
+    commands.add_parser("run-worker", help="Run background jobs and practice feedback here")
     commands.add_parser(
         "seed-taxonomy", help="Create the starting AI/ML taxonomy if there is none yet"
     )

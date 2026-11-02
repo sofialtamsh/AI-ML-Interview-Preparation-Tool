@@ -1,8 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { AiProviderStatus, AiUsageReport } from '../../../lib/types'
+import { ToastProvider } from '../../../components/ui/Toast'
+import type { AiProviderStatus, AiUsageReport, PracticeAdminView } from '../../../lib/types'
 import UsageTab, { humanize } from './UsageTab'
 
 const week = (start: string, end: string, calls: number, cost: string) => ({
@@ -41,9 +43,27 @@ const NOT_CONFIGURED: AiProviderStatus = {
   is_free_tier: null,
 }
 
-function serve(report: AiUsageReport, provider: AiProviderStatus = NOT_CONFIGURED) {
-  const fetch = vi.fn(async (url: string) => {
-    const body = url.includes('/provider') ? provider : report
+const PRACTICE: PracticeAdminView = {
+  enabled: true,
+  daily_limit: 10,
+  ai_configured: true,
+  max_seconds: 180,
+  transcription_model: 'openai/whisper-large-v3',
+  feedback_model: 'anthropic/claude-sonnet-5.5',
+  last_7_days: { attempts: 12, students: 4, feedback_given: 11, average_score: 6.4, cost_usd: '0.31' },
+}
+
+function serve(report: AiUsageReport, provider: AiProviderStatus = NOT_CONFIGURED, permissions: string[] = ['ai_usage.view']) {
+  const fetch = vi.fn(async (url: string, init?: RequestInit) => {
+    const body = url.includes('/provider')
+      ? provider
+      : url.includes('/auth/me')
+        ? { id: 'a1', email: 'a@example.com', full_name: 'A', permissions }
+        : url.includes('/practice/settings')
+          ? init?.method === 'PUT'
+            ? { ...PRACTICE, ...JSON.parse(String(init.body)) }
+            : PRACTICE
+          : report
     return new Response(JSON.stringify(body), { status: 200 })
   })
   vi.stubGlobal('fetch', fetch)
@@ -54,7 +74,9 @@ function renderTab() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={client}>
-      <UsageTab />
+      <ToastProvider>
+        <UsageTab />
+      </ToastProvider>
     </QueryClientProvider>,
   )
 }
@@ -98,6 +120,34 @@ describe('AI usage tab', () => {
     expect(screen.getByText('$3.21')).toBeInTheDocument()
     expect(screen.getByText('$14.50')).toBeInTheDocument()
     expect(screen.getByText('a week')).toBeInTheDocument()
+  })
+
+  it('shows practice feedback usage, editable only with the settings permission', async () => {
+    serve(REPORT)
+    renderTab()
+    expect(await screen.findByText('Interview practice feedback')).toBeInTheDocument()
+    expect(await screen.findByText('6.4 / 10')).toBeInTheDocument()
+    expect(screen.getByText('$0.31')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
+  })
+
+  it('lets settings admins switch practice feedback off and change the daily limit', async () => {
+    const fetch = serve(REPORT, NOT_CONFIGURED, ['ai_usage.view', 'settings.manage'])
+    renderTab()
+    const limit = await screen.findByLabelText('Answers per student per day')
+    const save = screen.getByRole('button', { name: 'Save' })
+    expect(save).toBeDisabled()
+    await userEvent.click(screen.getByLabelText('Students can get AI feedback'))
+    await userEvent.clear(limit)
+    await userEvent.type(limit, '4')
+    await userEvent.click(save)
+    await vi.waitFor(() =>
+      expect(fetch).toHaveBeenCalledWith(
+        '/api/admin/practice/settings',
+        expect.objectContaining({ method: 'PUT', body: JSON.stringify({ enabled: false, daily_limit: 4 }) }),
+      ),
+    )
+    expect(await screen.findByText('Off')).toBeInTheDocument()
   })
 
   it('humanizes feature keys', () => {

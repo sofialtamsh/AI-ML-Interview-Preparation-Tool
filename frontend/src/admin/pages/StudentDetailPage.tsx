@@ -1,4 +1,4 @@
-import { ArrowLeft, CircleCheck, CircleX, Lock } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CircleCheck, CircleX, Lock } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 
@@ -12,6 +12,7 @@ import { describeDevice, formatDate, formatDateTime, initials, timeAgo } from '.
 import type { StudentDetail, StudentStatus } from '../../lib/types'
 import { useCan, useCohorts, useStudent, useUpdateStudent } from '../api'
 import { StatusBadge } from '../StatusBadge'
+import { StudentLearningPanel } from './StudentLearningPanel'
 
 const FAILURE_LABELS: Record<string, string> = {
   bad_password: 'Wrong password',
@@ -115,6 +116,7 @@ export default function StudentDetailPage() {
   const { id = '' } = useParams()
   const student = useStudent(id)
   const canManage = useCan('students.manage')
+  const canSeeAnalytics = useCan('analytics.view')
 
   return (
     <div>
@@ -211,6 +213,23 @@ export default function StudentDetailPage() {
 
             {canManage && <ManageCard key={student.dataUpdatedAt} student={student.data} />}
           </div>
+
+          <section aria-labelledby="learning" className="space-y-4">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <h2 id="learning" className="font-display text-xl font-bold text-slate-900">
+                Learning
+              </h2>
+              {canSeeAnalytics && (
+                <Link
+                  to={`/admin/analytics?student_id=${student.data.id}`}
+                  className="inline-flex items-center gap-1 text-sm font-semibold text-brand-700 hover:text-brand-800"
+                >
+                  See in Analytics <ArrowRight className="size-4" aria-hidden />
+                </Link>
+              )}
+            </div>
+            <StudentLearningPanel studentId={student.data.id} />
+          </section>
         </>
       )}
     </div>

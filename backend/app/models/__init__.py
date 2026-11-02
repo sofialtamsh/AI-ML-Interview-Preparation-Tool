@@ -10,9 +10,11 @@ from app.models.content import (
     CodeCheck,
     Component,
     ContentItem,
+    ContentRating,
     ContentVersion,
     MediaAsset,
     PlatformSetting,
+    QualityReview,
     VersionOrigin,
     VersionStatus,
 )
@@ -26,6 +28,14 @@ from app.models.intelligence import (
     ReviewStatus,
 )
 from app.models.jobs import ACTIVE_JOB_STATUSES, Job, JobEvent, JobEventLevel, JobKind, JobStatus
+from app.models.practice import PRACTICE_SETTINGS, AttemptStatus, PracticeAttempt
+from app.models.progress import (
+    LearningEvent,
+    LearningEventKind,
+    QuizAttempt,
+    QuizResponse,
+    TopicProgress,
+)
 from app.models.research import (
     CurriculumRecommendation,
     Decision,
@@ -51,9 +61,11 @@ from app.models.taxonomy import Domain, Topic
 __all__ = [
     "ACTIVE_JOB_STATUSES",
     "EXPANSION_APPROVED",
+    "PRACTICE_SETTINGS",
     "AdminStatus",
     "AdminUser",
     "AiUsageEvent",
+    "AttemptStatus",
     "Audience",
     "AuditLog",
     "AuthMethod",
@@ -65,6 +77,7 @@ __all__ = [
     "ConnectionStatus",
     "ConnectorType",
     "ContentItem",
+    "ContentRating",
     "ContentVersion",
     "CurriculumRecommendation",
     "Decision",
@@ -80,12 +93,18 @@ __all__ = [
     "JobEventLevel",
     "JobKind",
     "JobStatus",
+    "LearningEvent",
+    "LearningEventKind",
     "LoginEvent",
     "MediaAsset",
     "PasswordResetToken",
     "Permission",
     "PlatformSetting",
+    "PracticeAttempt",
+    "QualityReview",
     "QuestionType",
+    "QuizAttempt",
+    "QuizResponse",
     "RawSourceRecord",
     "RecommendationKind",
     "RecordExtraction",
@@ -99,6 +118,7 @@ __all__ = [
     "Student",
     "StudentStatus",
     "Topic",
+    "TopicProgress",
     "Trend",
     "VersionOrigin",
     "VersionStatus",

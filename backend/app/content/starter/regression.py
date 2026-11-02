@@ -429,8 +429,8 @@ QUIZ = {
             "difficulty": "easy",
             "kind": "math",
             "prompt": "In ŷ = 0.25x + 4, what happens to ŷ when x goes up by 10?",
-            "options": ["It rises by 0.25", "It rises by 2.5", "It rises by 4", "It doubles"],
-            "answer": 1,
+            "options": ["It rises by 0.25", "It doubles", "It rises by 4", "It rises by 2.5"],
+            "answer": 3,
             "explanation": "The slope is 0.25 per unit, so 10 units add 2.5.",
         },
         {
@@ -438,12 +438,12 @@ QUIZ = {
             "kind": "concept",
             "prompt": "Why square the residuals in MSE?",
             "options": [
-                "To make the numbers smaller",
                 "So errors can't cancel out and big errors count more",
+                "To make the numbers smaller",
                 "Because it's faster to compute",
                 "To ignore outliers",
             ],
-            "answer": 1,
+            "answer": 0,
             "explanation": "Squares are positive and grow quickly with the size of the error.",
         },
         {
@@ -452,11 +452,11 @@ QUIZ = {
             "prompt": "An R² of 0 means the model…",
             "options": [
                 "Is perfect",
-                "Does no better than always predicting the mean",
                 "Has zero error",
+                "Does no better than always predicting the mean",
                 "Is impossible to compute",
             ],
-            "answer": 1,
+            "answer": 2,
             "explanation": "R² compares your model with the mean-only baseline.",
         },
         {
@@ -465,11 +465,11 @@ QUIZ = {
             "prompt": "You add one extreme outlier to your data. The least-squares line…",
             "options": [
                 "Doesn't change",
-                "Moves toward the outlier",
-                "Moves away from the outlier",
                 "Becomes horizontal",
+                "Moves away from the outlier",
+                "Moves toward the outlier",
             ],
-            "answer": 1,
+            "answer": 3,
             "explanation": "Squared error gives the outlier a large pull on the fit.",
         },
         {
@@ -478,21 +478,20 @@ QUIZ = {
             "prompt": "Why does this raise an error?",
             "code": "model = LinearRegression()\nmodel.fit(size, rent)  # size is a 1-D array",
             "options": [
-                "rent must be 2-D",
                 "X must be 2-D: use size.reshape(-1, 1)",
+                "rent must be 2-D",
                 "LinearRegression needs a learning rate",
                 "fit expects lists, not arrays",
             ],
-            "answer": 1,
-            "explanation": "scikit-learn expects features as a 2-D array of shape (samples, "
-            "features).",
+            "answer": 0,
+            "explanation": "scikit-learn expects features as a 2-D array of shape (samples, features).",
         },
         {
             "difficulty": "hard",
             "kind": "concept",
             "prompt": "Which penalty can set some weights exactly to zero?",
-            "options": ["Ridge (L2)", "Lasso (L1)", "Neither", "Both equally"],
-            "answer": 1,
+            "options": ["Ridge (L2)", "Neither", "Lasso (L1)", "Both equally"],
+            "answer": 2,
             "explanation": "The L1 penalty's corners drive some coefficients to exactly zero.",
         },
     ]

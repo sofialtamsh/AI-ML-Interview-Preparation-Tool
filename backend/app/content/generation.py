@@ -11,7 +11,7 @@ its id, and the stored wording is replaced with the approved record's exact text
 import json
 import uuid
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -35,6 +35,7 @@ from app.models import (
     InterviewExperience,
     InterviewQuestion,
     MediaAsset,
+    QualityReview,
     ResearchFinding,
     ResearchQuestion,
     ReviewStatus,
@@ -127,6 +128,19 @@ class GenerationOptions(BaseModel):
     components: list[Component] = Field(min_length=1)
     use_intelligence: bool = True
     max_cost_usd: Decimal = Field(default=Decimal("2"), gt=0)
+    # "revise" rewrites one existing version following an admin's instructions (and optionally
+    # the latest AI review), instead of writing the component from scratch.
+    mode: Literal["generate", "revise"] = "generate"
+    base_version_id: uuid.UUID | None = None
+    instructions: str | None = Field(default=None, max_length=2000)
+    use_review: bool = False
+
+
+REVISE = """Revise the {component} component below. Keep what is already good. Change what the \
+admin's instructions and the review findings call for, and fix anything technically wrong. \
+Review findings come from an AI reviewer: check each one and ignore any that are mistaken. Return \
+the complete component in the same format.
+{instruction}"""
 
 
 def _intelligence(db: Session, topic: Topic) -> dict[str, Any]:
@@ -201,30 +215,61 @@ def _ground_interview(
     return {**prep.model_dump(mode="json"), "questions": kept}
 
 
-def _messages(
-    topic: Topic, component: Component, evidence: dict[str, Any] | None
-) -> list[dict[str, str]]:
-    widget = TOPIC_WIDGETS.get(topic.slug, "")
-    instruction = INSTRUCTIONS[component].format(
-        widget=widget, controls=WIDGET_CONTROLS.get(widget, "")
-    )
-    context = {
+def _context(topic: Topic, component: Component, evidence: dict[str, Any] | None) -> str:
+    context: dict[str, Any] = {
         "topic": topic.name,
         "domain": topic.domain.name,
         "description": topic.description or None,
     }
     if component is Component.PLAYGROUND:
-        context["widget"] = widget
+        context["widget"] = TOPIC_WIDGETS.get(topic.slug, "")
     if evidence and component in (Component.INTERVIEW, Component.LESSON, Component.QUIZ):
         context.update(evidence)
+    return f"<context>\n{json.dumps(context, ensure_ascii=False, indent=1)}\n</context>"
+
+
+def _instruction(topic: Topic, component: Component) -> str:
+    widget = TOPIC_WIDGETS.get(topic.slug, "")
+    return INSTRUCTIONS[component].format(widget=widget, controls=WIDGET_CONTROLS.get(widget, ""))
+
+
+def _messages(
+    topic: Topic, component: Component, evidence: dict[str, Any] | None
+) -> list[dict[str, str]]:
     return [
         {"role": "system", "content": STYLE},
         {
             "role": "user",
-            "content": f"Write the {component.value} component for this topic.\n{instruction}\n\n"
-            f"<context>\n{json.dumps(context, ensure_ascii=False, indent=1)}\n</context>",
+            "content": f"Write the {component.value} component for this topic.\n"
+            f"{_instruction(topic, component)}\n\n{_context(topic, component, evidence)}",
         },
     ]
+
+
+def _revise_messages(
+    topic: Topic,
+    base: ContentVersion,
+    options: GenerationOptions,
+    findings: list[dict[str, Any]],
+    evidence: dict[str, Any] | None,
+) -> list[dict[str, str]]:
+    component = base.item.component
+    parts = [
+        REVISE.format(component=component.value, instruction=_instruction(topic, component)),
+        f"<instructions>\n{options.instructions or 'Improve it where the review says so.'}\n"
+        "</instructions>",
+    ]
+    if findings:
+        listed = "\n".join(
+            f"- [{f['severity']}] {f['location']}: {f['problem']} Suggested fix: {f['fix']}"
+            for f in findings
+        )
+        parts.append(f"<review_findings>\n{listed}\n</review_findings>")
+    parts += [
+        _context(topic, component, evidence),
+        f"<current>\n{json.dumps(base.body, ensure_ascii=False, indent=1)}\n</current>",
+    ]
+    return [{"role": "system", "content": STYLE}, {"role": "user", "content": "\n\n".join(parts)}]
 
 
 def generate_component(
@@ -234,14 +279,21 @@ def generate_component(
     component: Component,
     evidence: dict[str, Any] | None,
     ctx: JobContext,
+    *,
+    revise: tuple[ContentVersion, GenerationOptions, list[dict[str, Any]]] | None = None,
 ) -> ContentVersion:
     model = get_settings().model_content
+    messages = (
+        _revise_messages(topic, revise[0], revise[1], revise[2], evidence)
+        if revise
+        else _messages(topic, component, evidence)
+    )
     output = structured_chat(
         client,
         SCHEMAS[component],
         feature=FEATURE,
         model=model,
-        messages=_messages(topic, component, evidence),
+        messages=messages,
         job_id=ctx.job.id,
         admin_id=ctx.job.triggered_by_admin_id,
     )
@@ -259,9 +311,12 @@ def generate_component(
         body,
         origin=VersionOrigin.AI_GENERATED,
         admin_id=ctx.job.triggered_by_admin_id,
-        note="Generated by AI; review before publishing.",
+        note=f"Revised by AI from version {revise[0].number}; review before publishing."
+        if revise
+        else "Generated by AI; review before publishing.",
         model=model,
         job_id=ctx.job.id,
+        based_on=revise[0] if revise else None,
     )
     db.commit()
     return version
@@ -283,7 +338,12 @@ def run_content_generation(ctx: JobContext) -> None:
     if Component.PLAYGROUND in components and topic.slug not in TOPIC_WIDGETS:
         components.remove(Component.PLAYGROUND)
         ctx.info("Skipped the playground: no interactive playground exists for this topic yet.")
-    evidence = _intelligence(db, topic) if options.use_intelligence else None
+    revise = _revision_inputs(db, options, topic, ctx) if options.mode == "revise" else None
+    if revise:
+        components = [revise[0].item.component]
+    # A revised interview set must keep any real interview questions it already has.
+    needs_evidence = options.use_intelligence or (revise and components == [Component.INTERVIEW])
+    evidence = _intelligence(db, topic) if needs_evidence else None
     if evidence:
         ctx.info(
             f"Using {len(evidence['actual_interview_questions'])} approved interview question(s), "
@@ -292,7 +352,20 @@ def run_content_generation(ctx: JobContext) -> None:
         )
     job.progress_total = len(components)
     client = ai_client_or_fail()
-    done = failed = 0
+    generated: list[str] = []
+    failed: list[str] = []
+
+    def report(done: int) -> None:
+        ctx.report(
+            done=done,
+            result={
+                "generated": len(generated),
+                "failed": len(failed),
+                "generated_components": generated,
+                "failed_components": failed,
+            },
+        )
+
     try:
         for index, component in enumerate(components):
             ctx.check_cancelled()
@@ -300,26 +373,60 @@ def run_content_generation(ctx: JobContext) -> None:
                 ctx.warn(f"Stopped at this run's spending limit (${max_cost}).")
                 break
             try:
-                version = generate_component(db, client, topic, component, evidence, ctx)
+                version = generate_component(
+                    db, client, topic, component, evidence, ctx, revise=revise
+                )
             except AiProviderError as exc:
                 if is_fatal(exc):
                     raise AgentError(f"The AI provider refused the request: {exc}") from None
-                failed += 1
+                failed.append(component.value)
                 ctx.warn(f"{component.value}: {exc}")
             except (AgentError, ContentError) as exc:
                 db.rollback()
-                failed += 1
+                failed.append(component.value)
                 ctx.warn(f"{component.value}: {exc}")
             else:
-                done += 1
+                generated.append(component.value)
                 ctx.info(f"{component.value}: draft v{version.number} saved.")
-            ctx.report(done=index + 1, result={"generated": done, "failed": failed})
+            report(index + 1)
     finally:
         client.close()
     ctx.info(
-        f"Done: {done} draft(s) for {topic.name}, waiting for review. "
+        f"Done: {len(generated)} draft(s) for {topic.name}, waiting for review. "
         f"Spent ${run_spend(db, job.id):.4f}."
     )
+
+
+def _revision_inputs(
+    db: Session, options: GenerationOptions, topic: Topic, ctx: JobContext
+) -> tuple[ContentVersion, GenerationOptions, list[dict[str, Any]]]:
+    base = db.get(ContentVersion, options.base_version_id) if options.base_version_id else None
+    if base is None or base.item.topic_id != topic.id:
+        raise ContentError("The version to revise no longer exists.")
+    findings: list[dict[str, Any]] = []
+    if options.use_review:
+        review = db.scalars(
+            select(QualityReview)
+            .where(QualityReview.version_id == base.id)
+            .order_by(QualityReview.created_at.desc())
+            .limit(1)
+        ).first()
+        findings = list(review.issues) if review else []
+        if review and review.quiz_check:
+            findings += [
+                {
+                    "severity": "error",
+                    "location": f"Question {row['question']}",
+                    "problem": "An independent solver picked a different option than the key.",
+                    "fix": "Make sure exactly one option is correct and the key points to it.",
+                }
+                for row in review.quiz_check
+                if not row["agrees"]
+            ]
+        ctx.info(f"Revising version {base.number} with {len(findings)} review finding(s).")
+    else:
+        ctx.info(f"Revising version {base.number}.")
+    return base, options, findings
 
 
 # --- Narration ---------------------------------------------------------------------------------

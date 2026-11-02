@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.deps import get_student_context
 from app.content.schemas import COMPONENT_ORDER
+from app.content.service import published_by_topic, visible_topics
 from app.core.db import get_db
 from app.models import Component, ContentItem, ContentVersion, Domain, MediaAsset, Topic
 from app.schemas.learn import (
@@ -28,35 +29,10 @@ router = APIRouter(
 )
 
 
-def _published(
-    db: Session, topic_ids: list[uuid.UUID]
-) -> dict[uuid.UUID, dict[Component, ContentVersion]]:
-    rows = db.execute(
-        select(ContentItem.topic_id, ContentItem.component, ContentVersion)
-        .join(ContentVersion, ContentItem.published_version_id == ContentVersion.id)
-        .where(ContentItem.topic_id.in_(topic_ids))
-    ).unique()
-    published: dict[uuid.UUID, dict[Component, ContentVersion]] = {}
-    for topic_id, component, version in rows:
-        published.setdefault(topic_id, {})[component] = version
-    return published
-
-
-def _visible_topics(db: Session) -> list[Topic]:
-    return list(
-        db.scalars(
-            select(Topic)
-            .join(Domain, Topic.domain_id == Domain.id)
-            .where(Topic.archived_at.is_(None), Domain.archived_at.is_(None))
-            .order_by(Domain.position, Topic.position)
-        ).unique()
-    )
-
-
 @router.get("", response_model=list[LearnDomain])
 def domains(db: Session = Depends(get_db)) -> list[LearnDomain]:
-    topics = _visible_topics(db)
-    published = _published(db, [t.id for t in topics])
+    topics = visible_topics(db)
+    published = published_by_topic(db, [t.id for t in topics])
     grouped: dict[uuid.UUID, LearnDomain] = {}
     for topic in topics:
         parts = published.get(topic.id, {})
@@ -104,7 +80,7 @@ def topic(slug: str, db: Session = Depends(get_db)) -> LearnTopic:
         .join(Domain, Topic.domain_id == Domain.id)
         .where(Topic.slug == slug, Topic.archived_at.is_(None), Domain.archived_at.is_(None))
     )
-    parts = _published(db, [found.id]).get(found.id, {}) if found else {}
+    parts = published_by_topic(db, [found.id]).get(found.id, {}) if found else {}
     lesson = parts.get(Component.LESSON)
     if found is None or lesson is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Topic not found.")
@@ -113,7 +89,7 @@ def topic(slug: str, db: Session = Depends(get_db)) -> LearnTopic:
         version = parts.get(component)
         return version.body if version else None
 
-    interview = body(Component.INTERVIEW)
+    interview = parts.get(Component.INTERVIEW)
     video = parts.get(Component.VIDEO)
     return LearnTopic(
         slug=found.slug,
@@ -126,8 +102,9 @@ def topic(slug: str, db: Session = Depends(get_db)) -> LearnTopic:
         playground=body(Component.PLAYGROUND),
         video=_video(db, video) if video else None,
         python=body(Component.PYTHON),
-        interview=student_interview(interview) if interview else None,
+        interview=student_interview(interview.id, interview.body) if interview else None,
         quiz=body(Component.QUIZ),
+        quiz_version_id=parts[Component.QUIZ].id if Component.QUIZ in parts else None,
         revision=body(Component.REVISION),
     )
 

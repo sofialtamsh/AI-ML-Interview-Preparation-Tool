@@ -58,6 +58,11 @@ class FakeOpenRouter:
         # Content components, chosen by the schema name the request asks for (e.g. "Lesson").
         self.content: dict[str, Reply] = {}
         self.speech_cost = 0.004
+        # Speech-to-text: what the "student" said, with optional timed segments.
+        self.transcript = ""
+        self.segments: list[dict[str, Any]] = []
+        self.transcription_cost = 0.002
+        self.plain_transcripts_only = False  # reject verbose_json with a 400, like some providers
 
     # --- Introspection ---------------------------------------------------------------------
 
@@ -66,6 +71,17 @@ class FakeOpenRouter:
 
     def speech_calls(self) -> list[dict[str, Any]]:
         return [r for r in self.requests if "voice" in r]
+
+    def transcription_calls(self) -> list[dict[str, Any]]:
+        return [r for r in self.requests if "input_audio" in r]
+
+    def schema_calls(self, name: str) -> list[dict[str, Any]]:
+        return [
+            r
+            for r in self.requests
+            if isinstance(r.get("response_format"), dict)
+            and r["response_format"].get("json_schema", {}).get("name") == name
+        ]
 
     @staticmethod
     def _kind(body: dict[str, Any]) -> str:
@@ -83,6 +99,18 @@ class FakeOpenRouter:
         self.requests.append(body)
         if self.fail_status:
             return httpx.Response(self.fail_status, json={"error": {"message": "Key rejected"}})
+        if request.url.path.endswith("/audio/transcriptions"):
+            if self.plain_transcripts_only and body.get("response_format") == "verbose_json":
+                return httpx.Response(400, json={"error": {"message": "Unsupported format"}})
+            reply: dict[str, Any] = {
+                "text": self.transcript,
+                "usage": {"cost": self.transcription_cost, "seconds": 30},
+            }
+            if body.get("response_format") == "verbose_json":
+                reply["segments"] = self.segments
+            return httpx.Response(
+                200, json=reply, headers={"x-generation-id": f"gen-{uuid.uuid4()}"}
+            )
         if request.url.path.endswith("/audio/speech"):
             audio = b"ID3" + body["input"].encode()[:64]  # a stand-in for MP3 bytes
             return httpx.Response(

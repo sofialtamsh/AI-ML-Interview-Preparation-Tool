@@ -20,6 +20,14 @@ export const formatDateTime = (iso: string | null | undefined) =>
 
 export const formatCount = (value: number) => numberFormat.format(value)
 
+/** Learning time: "0 min", "45 min", "3 h 20 min". */
+export function formatDuration(seconds: number): string {
+  const minutes = Math.round(seconds / 60)
+  if (minutes < 60) return `${minutes} min`
+  const hours = Math.floor(minutes / 60)
+  return minutes % 60 ? `${hours} h ${minutes % 60} min` : `${hours} h`
+}
+
 export function timeAgo(iso: string | null | undefined, now = Date.now()): string {
   if (!iso) return 'Never'
   const seconds = Math.round((now - new Date(iso).getTime()) / 1000)

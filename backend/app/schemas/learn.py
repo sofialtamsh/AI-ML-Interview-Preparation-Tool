@@ -35,6 +35,8 @@ class StudentInterviewItem(ApiModel):
 
 
 class StudentInterview(ApiModel):
+    # Practice answers name the exact (immutable) question set they answered.
+    version_id: uuid.UUID
     questions: list[StudentInterviewItem]
     takeaways: list[str]
 
@@ -66,6 +68,8 @@ class LearnTopic(ApiModel):
     python: dict[str, Any] | None
     interview: StudentInterview | None
     quiz: dict[str, Any] | None
+    # Quiz attempts name the exact (immutable) quiz they answered, so the server can grade them.
+    quiz_version_id: uuid.UUID | None = None
     revision: dict[str, Any] | None
 
 
@@ -77,8 +81,9 @@ LABELS = {
 }
 
 
-def student_interview(body: dict[str, Any]) -> StudentInterview:
+def student_interview(version_id: uuid.UUID, body: dict[str, Any]) -> StudentInterview:
     return StudentInterview(
+        version_id=version_id,
         questions=[
             StudentInterviewItem(
                 level=q["level"],

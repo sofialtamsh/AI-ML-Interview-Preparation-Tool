@@ -18,6 +18,7 @@ class JobKind(StrEnum):
     MARKET_RESEARCH = "market_research"
     CONTENT_GENERATION = "content_generation"
     CONTENT_NARRATION = "content_narration"
+    CONTENT_REVIEW = "content_review"
 
 
 class JobStatus(StrEnum):

@@ -43,6 +43,11 @@ AI/ML interview-preparation platform (admin console + student app).
   and are never returned, logged or audited. Audit entries name the fields, never the values.
 - Long-running work is a job (`app/jobs/runner.py`) that only an explicit admin action creates.
   Handlers log through `JobContext` and raise `UserFacingError` for messages admins should see.
+  The one student-triggered AI work is interview practice (`app/practice/`): a student's own
+  "Get feedback" queues a `practice_attempts` row for separate practice workers, bounded by the
+  admin switch and daily limit (`platform_settings["practice_feedback"]`). Practice audio is erased
+  when processing ends, videos are never uploaded, and the score is computed in code, not by the
+  model.
 - Agent output is checked in code, not trusted:
   - structured output via `structured_chat` (strict schema, one repair attempt);
   - quotes and questions checked with `SourceText`;
@@ -58,6 +63,17 @@ AI/ML interview-preparation platform (admin console + student app).
   `origin`/`source_ref`. After changing starter content or schemas, run
   `uv run python -m app.cli export-starter-fixture ../frontend/src/test/fixtures/starter-content.json`
   (a test fails otherwise) and `seed-pilot-content --refresh` on the dev database.
+- Content quality: automated checks live in `app/content/quality.py` (free, computed on demand);
+  an `error` finding blocks publishing, so only use it for things that must never reach students.
+  AI reviews (`app/content/review.py`) are advisory, keep only issues whose quote is in the
+  content, and never edit or publish. Ratings and reviews are append-only.
+- Learning progress (`app/progress/`): sections report events through `record_event` (validated
+  against published content); quizzes are graded only in `submit_quiz`. Completion and mastery are
+  separate; don't merge them into one score. Admin learning views never include transcripts.
+  `learning_events`, `quiz_attempts` and `quiz_responses` are append-only; `topic_progress` rejects
+  DELETE. Learning time goes only through `record_time` (capped at wall-clock time since the
+  student's last report), never through `record_event`. Analytics filtered to one student also
+  needs `students.view`.
 - Tests and browser checks never put invented intelligence into the dev database. Use the test
   DB, or a throwaway `ipp_e2e` database with a simulated OpenRouter (`tests/fake_ai.py`).
 - Schema changes: edit models → `uv run alembic revision --autogenerate -m "..."` → review the file.

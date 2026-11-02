@@ -36,7 +36,7 @@ PERMISSION_DESCRIPTIONS: dict[Perm, str] = {
     Perm.ADMINS_MANAGE: "Create admin accounts, assign roles, disable admins",
     Perm.ROLES_MANAGE: "Create and edit custom admin roles",
     Perm.AUDIT_VIEW: "View the admin audit log",
-    Perm.SETTINGS_MANAGE: "Change platform settings, including the content-expansion gate",
+    Perm.SETTINGS_MANAGE: "Change platform settings (content-expansion gate, practice feedback)",
     Perm.AI_USAGE_VIEW: "View AI spend (USD) and the AI provider's credit status",
     Perm.SOURCES_VIEW: "View configured interview data sources (never their secrets)",
     Perm.SOURCES_MANAGE: "Add, edit, enable/disable and test interview data sources",

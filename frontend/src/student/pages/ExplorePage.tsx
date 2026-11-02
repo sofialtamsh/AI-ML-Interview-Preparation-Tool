@@ -1,12 +1,14 @@
-import { ArrowRight, Clock, Compass, RefreshCw } from 'lucide-react'
+import { ArrowRight, CircleCheck, Clock, Compass, RefreshCw, Trophy } from 'lucide-react'
 import { Link } from 'react-router'
 
 import { Button } from '../../components/ui/Button'
 import { Alert, Card, EmptyState, PageHeader, Skeleton } from '../../components/ui/Feedback'
 import { SECTIONS, type ComponentKey } from '../../learn/sections'
 import { errorMessage } from '../../lib/api'
-import type { LearnTopicCard } from '../../lib/types'
+import { cn } from '../../lib/cn'
+import type { LearnTopicCard, TopicSummary } from '../../lib/types'
 import { useLearnDomains } from '../api'
+import { useMyProgress } from '../progressApi'
 
 const DOMAIN_STYLE: Record<string, { gradient: string; emoji: string }> = {
   'machine-learning': { gradient: 'from-sky-500 via-brand-600 to-violet-600', emoji: '🤖' },
@@ -14,7 +16,7 @@ const DOMAIN_STYLE: Record<string, { gradient: string; emoji: string }> = {
 }
 const FALLBACK_STYLE = { gradient: 'from-brand-500 to-fuchsia-600', emoji: '✨' }
 
-export function TopicCard({ topic, domainSlug }: { topic: LearnTopicCard; domainSlug: string }) {
+export function TopicCard({ topic, domainSlug, progress }: { topic: LearnTopicCard; domainSlug: string; progress?: TopicSummary }) {
   const style = DOMAIN_STYLE[domainSlug] ?? FALLBACK_STYLE
   return (
     <Link
@@ -37,16 +39,38 @@ export function TopicCard({ topic, domainSlug }: { topic: LearnTopicCard; domain
             const meta = SECTIONS[section as ComponentKey]
             if (!meta) return null
             const Icon = meta.icon
+            const done = progress?.sections[section] === 'done'
             return (
-              <span key={section} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-                <Icon className="size-3.5" aria-hidden />
+              <span
+                key={section}
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+                  done ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600',
+                )}
+              >
+                {done ? <CircleCheck className="size-3.5" aria-label="Done" /> : <Icon className="size-3.5" aria-hidden />}
                 {meta.label}
               </span>
             )
           })}
         </div>
+        {progress?.started && (
+          <div className="pt-1">
+            <div className="h-1.5 overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-label={`${topic.name} progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress.completion}>
+              <div className="h-full rounded-full bg-gradient-to-r from-brand-500 to-fuchsia-500" style={{ width: `${progress.completion}%` }} />
+            </div>
+          </div>
+        )}
         <span className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-brand-700">
-          <span className="capitalize">{topic.level}</span> · Start
+          {progress?.completed ? (
+            <>
+              <Trophy className="size-4 text-emerald-600" aria-hidden /> <span className="text-emerald-700">Done · review anytime</span>
+            </>
+          ) : (
+            <>
+              <span className="capitalize">{topic.level}</span> · {progress?.started ? `Continue (${progress.done}/${progress.total})` : 'Start'}
+            </>
+          )}
           <ArrowRight className="size-4 transition group-hover:translate-x-1" aria-hidden />
         </span>
       </div>
@@ -56,6 +80,8 @@ export function TopicCard({ topic, domainSlug }: { topic: LearnTopicCard; domain
 
 export default function ExplorePage() {
   const domains = useLearnDomains()
+  const progress = useMyProgress()
+  const bySlug = new Map((progress.data?.topics ?? []).map((t) => [t.slug, t]))
 
   return (
     <div className="space-y-8">
@@ -93,7 +119,7 @@ export default function ExplorePage() {
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {domain.topics.map((topic) => (
-              <TopicCard key={topic.slug} topic={topic} domainSlug={domain.slug} />
+              <TopicCard key={topic.slug} topic={topic} domainSlug={domain.slug} progress={bySlug.get(topic.slug)} />
             ))}
           </div>
         </section>

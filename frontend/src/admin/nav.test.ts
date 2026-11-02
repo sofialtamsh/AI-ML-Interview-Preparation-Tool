@@ -48,6 +48,11 @@ describe('admin navigation', () => {
     expect(labels(visibleFor(ADMIN_NAV, ['taxonomy.manage']))).toEqual(['Overview', 'Market research', 'Domains & topics'])
   })
 
+  it('shows analytics to admins with the analytics permission', () => {
+    expect(labels(visibleFor(ADMIN_NAV, ['analytics.view']))).toEqual(['Overview', 'Analytics'])
+    expect(labels(visibleFor(ADMIN_NAV, ['students.view', 'analytics.view']))).toEqual(['Overview', 'Students', 'Analytics'])
+  })
+
   it('opens system settings to admins who can only see AI spend', () => {
     expect(labels(visibleFor(ADMIN_NAV, ['ai_usage.view']))).toEqual(['Overview', 'System settings'])
     expect(labels(visibleFor(SETTINGS_TABS, ['ai_usage.view']))).toEqual(['AI usage'])

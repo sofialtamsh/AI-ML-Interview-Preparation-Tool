@@ -5,7 +5,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router'
 import { Pagination } from '../../components/Pagination'
 import { Button } from '../../components/ui/Button'
 import { Dialog } from '../../components/ui/Dialog'
-import { Alert, Card, EmptyState, PageHeader, Skeleton } from '../../components/ui/Feedback'
+import { Alert, Badge, Card, EmptyState, PageHeader, Skeleton } from '../../components/ui/Feedback'
 import { SelectField, TextField } from '../../components/ui/Field'
 import { useToast } from '../../components/ui/Toast'
 import { errorMessage } from '../../lib/api'
@@ -84,6 +84,7 @@ export default function StudentsPage() {
     q: params.get('q') ?? '',
     status: (params.get('status') as StudentStatus | null) ?? '',
     cohort_id: params.get('cohort') ?? '',
+    attention: (params.get('attention') as StudentFilters['attention']) ?? '',
     page: Math.max(1, Number(params.get('page')) || 1),
   }
   const [search, setSearch] = useState(filters.q)
@@ -93,7 +94,7 @@ export default function StudentsPage() {
   const canManage = useCan('students.manage')
   const navigate = useNavigate()
 
-  const update = (changes: Partial<Record<'q' | 'status' | 'cohort' | 'page', string>>) => {
+  const update = (changes: Partial<Record<'q' | 'status' | 'cohort' | 'attention' | 'page', string>>) => {
     setParams(
       (current) => {
         const next = new URLSearchParams(current)
@@ -115,13 +116,13 @@ export default function StudentsPage() {
     return () => window.clearTimeout(timer)
   }, [search]) // only re-run on typing; `update` reads the latest params itself
 
-  const filtered = !!(filters.q || filters.status || filters.cohort_id)
+  const filtered = !!(filters.q || filters.status || filters.cohort_id || filters.attention)
 
   return (
     <div>
       <PageHeader
         title="Students"
-        description="Every registered student, their status and cohort."
+        description="Every registered student: status, cohort and how their learning is going."
         actions={
           canManage && (
             <Button
@@ -150,7 +151,7 @@ export default function StudentsPage() {
             className="block w-full rounded-xl border-0 bg-white py-2.5 pr-3.5 pl-10 text-sm shadow-xs ring-1 ring-slate-300 ring-inset placeholder:text-slate-400 focus:ring-2 focus:ring-brand-500 focus:outline-none"
           />
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:w-96">
+        <div className="grid grid-cols-2 gap-3 sm:w-[36rem] sm:grid-cols-3">
           <SelectField
             label="Status"
             hideLabel
@@ -174,6 +175,17 @@ export default function StudentsPage() {
                 {c.name} ({c.student_count})
               </option>
             ))}
+          </SelectField>
+          <SelectField
+            label="Learning"
+            hideLabel
+            value={filters.attention}
+            onChange={(e) => update({ attention: e.target.value })}
+          >
+            <option value="">All learners</option>
+            <option value="any">Needs attention</option>
+            <option value="inactive">Inactive 2+ weeks</option>
+            <option value="struggling">Struggling</option>
           </SelectField>
         </div>
       </div>
@@ -219,15 +231,16 @@ export default function StudentsPage() {
                 students.isPlaceholderData && 'opacity-60',
               )}
             >
-              <table className="w-full min-w-[720px] text-left text-sm">
+              <table className="w-full min-w-[880px] text-left text-sm">
                 <thead className="border-b border-slate-100 bg-slate-50/80 text-xs text-slate-500">
                   <tr>
                     <th className="px-5 py-3 font-medium">Student</th>
                     <th className="px-3 py-3 font-medium">ID</th>
                     <th className="px-3 py-3 font-medium">Cohort</th>
                     <th className="px-3 py-3 font-medium">Status</th>
+                    <th className="px-3 py-3 font-medium">Learning</th>
                     <th className="px-3 py-3 font-medium">Joined</th>
-                    <th className="px-5 py-3 font-medium">Last sign-in</th>
+                    <th className="px-5 py-3 font-medium">Last active</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -246,14 +259,37 @@ export default function StudentsPage() {
                           {s.full_name}
                         </Link>
                         <p className="text-xs text-slate-500">{s.email}</p>
+                        {s.learning?.flags.map((flag) => (
+                          <Badge key={flag} tone={flag === 'struggling' ? 'warning' : 'neutral'} className="mt-1 mr-1">
+                            {flag === 'struggling' ? 'Struggling' : 'Inactive'}
+                          </Badge>
+                        ))}
                       </td>
                       <td className="px-3 py-3 font-mono text-xs text-slate-600">{s.student_code}</td>
                       <td className="px-3 py-3 text-slate-600">{s.cohort?.name ?? '—'}</td>
                       <td className="px-3 py-3">
                         <StatusBadge status={s.status} />
                       </td>
+                      <td className="px-3 py-3 text-xs text-slate-600">
+                        {s.learning && s.learning.topics_started > 0 ? (
+                          <>
+                            <span className="block font-medium text-slate-800">
+                              {s.learning.topics_completed}/{s.learning.topics_started} topics done
+                            </span>
+                            <span>
+                              Quiz {s.learning.quiz_average !== null ? `${Math.round(s.learning.quiz_average)}%` : '—'}
+                              {s.learning.practice_average !== null && ` · Practice ${s.learning.practice_average.toFixed(1)}/10`}
+                            </span>
+                          </>
+                        ) : (
+                          'Not started'
+                        )}
+                      </td>
                       <td className="px-3 py-3 text-slate-600">{formatDate(s.created_at)}</td>
-                      <td className="px-5 py-3 text-slate-600">{timeAgo(s.last_login_at)}</td>
+                      <td className="px-5 py-3 text-slate-600">
+                        {timeAgo(s.learning?.last_active_at ?? null)}
+                        <span className="block text-xs text-slate-400">signed in {timeAgo(s.last_login_at).toLowerCase()}</span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

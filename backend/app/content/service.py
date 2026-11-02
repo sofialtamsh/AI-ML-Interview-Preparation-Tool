@@ -23,6 +23,7 @@ from app.models import (
     Component,
     ContentItem,
     ContentVersion,
+    Domain,
     PlatformSetting,
     Topic,
     VersionOrigin,
@@ -228,6 +229,12 @@ def apply_transition(
                 "Run the code check first: a Python lab can only be published after its exact "
                 "code has run and produced the expected output."
             )
+        from app.content.quality import blocking_problems
+
+        if problems := blocking_problems(db, version):
+            shown = "; ".join(problem.rstrip(".") for problem in problems[:3])
+            more = f" (and {len(problems) - 3} more)" if len(problems) > 3 else ""
+            raise ContentError(f"Fix the quality check errors first: {shown}{more}.")
         if item.published_version_id and item.published_version_id != version.id:
             current = db.get(ContentVersion, item.published_version_id)
             if current is not None:
@@ -271,3 +278,34 @@ def expansion_approved(db: Session) -> bool:
 def may_generate(db: Session, topic: Topic) -> bool:
     """Content generation is limited to pilot topics until an admin approves expansion."""
     return topic.is_pilot or expansion_approved(db)
+
+
+# --- What students can see ----------------------------------------------------------------------
+
+
+def published_by_topic(
+    db: Session, topic_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, dict[Component, ContentVersion]]:
+    """The published version of each component, per topic."""
+    rows = db.execute(
+        select(ContentItem.topic_id, ContentItem.component, ContentVersion)
+        .join(ContentVersion, ContentItem.published_version_id == ContentVersion.id)
+        .where(ContentItem.topic_id.in_(topic_ids))
+    ).unique()
+    published: dict[uuid.UUID, dict[Component, ContentVersion]] = {}
+    for topic_id, component, version in rows:
+        published.setdefault(topic_id, {})[component] = version
+    return published
+
+
+def visible_topics(db: Session) -> list[Topic]:
+    """Unarchived topics in unarchived domains, in curriculum order. A topic is shown to students
+    once its lesson is published."""
+    return list(
+        db.scalars(
+            select(Topic)
+            .join(Domain, Topic.domain_id == Domain.id)
+            .where(Topic.archived_at.is_(None), Domain.archived_at.is_(None))
+            .order_by(Domain.position, Topic.position)
+        ).unique()
+    )

@@ -53,7 +53,7 @@ router = APIRouter(prefix="/agents", tags=["admin-agents"])
 can_view = require_permission(Perm.AGENTS_VIEW)
 can_run = require_permission(Perm.AGENTS_RUN)
 AGENT_KINDS = (JobKind.EXPLORATION, JobKind.MARKET_RESEARCH)
-CONTENT_KINDS = (JobKind.CONTENT_GENERATION, JobKind.CONTENT_NARRATION)
+CONTENT_KINDS = (JobKind.CONTENT_GENERATION, JobKind.CONTENT_NARRATION, JobKind.CONTENT_REVIEW)
 
 
 def _require_ai() -> None:
@@ -337,14 +337,20 @@ def get_job(job_id: uuid.UUID, db: Session = Depends(get_db)) -> AgentJobDetail:
     )
 
 
-def _may_control(ctx: AdminContext, job: Job) -> None:
+def may_control(ctx: AdminContext, job: Job) -> bool:
     if job.kind in AGENT_KINDS:
-        needed = Perm.AGENTS_RUN
+        needed = {Perm.AGENTS_RUN}
+    elif job.kind is JobKind.CONTENT_REVIEW:
+        needed = {Perm.CONTENT_REVIEW, Perm.CONTENT_PUBLISH}
     elif job.kind in CONTENT_KINDS:
-        needed = Perm.CONTENT_GENERATE
+        needed = {Perm.CONTENT_GENERATE}
     else:
-        needed = Perm.SOURCES_MANAGE
-    if needed.value not in ctx.permissions:
+        needed = {Perm.SOURCES_MANAGE}
+    return any(perm.value in ctx.permissions for perm in needed)
+
+
+def _may_control(ctx: AdminContext, job: Job) -> None:
+    if not may_control(ctx, job):
         raise HTTPException(
             status.HTTP_403_FORBIDDEN, "You do not have permission to perform this action."
         )

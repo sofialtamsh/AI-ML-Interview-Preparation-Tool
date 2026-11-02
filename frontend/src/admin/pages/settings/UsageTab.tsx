@@ -1,9 +1,10 @@
-import { CalendarClock, CircleDollarSign, RefreshCw } from 'lucide-react'
+import { CalendarClock, CircleDollarSign, Mic, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
 import { StatTile } from '../../../components/ui/StatTile'
 import { Alert, Badge, Card, CardHeader, EmptyState, Skeleton } from '../../../components/ui/Feedback'
+import { useToast } from '../../../components/ui/Toast'
 import { errorMessage } from '../../../lib/api'
 import { cn } from '../../../lib/cn'
 import {
@@ -14,8 +15,8 @@ import {
   formatUsd,
   formatWeekday,
 } from '../../../lib/format'
-import type { AiProviderStatus, AiUsageReport, UsageSlice } from '../../../lib/types'
-import { useAiProviderStatus, useAiUsage } from '../../api'
+import type { AiProviderStatus, AiUsageReport, PracticeAdminView, UsageSlice } from '../../../lib/types'
+import { useAiProviderStatus, useAiUsage, useCan, usePracticeSettings, useUpdatePracticeSettings } from '../../api'
 
 /** "content_generation" → "Content generation" */
 export function humanize(key: string): string {
@@ -136,6 +137,96 @@ function ProviderCard() {
         ) : (
           <ProviderDetails data={status.data} />
         )}
+      </div>
+    </Card>
+  )
+}
+
+function PracticeControls({ view }: { view: PracticeAdminView }) {
+  const update = useUpdatePracticeSettings()
+  const toast = useToast()
+  const [enabled, setEnabled] = useState(view.enabled)
+  const [limit, setLimit] = useState(String(view.daily_limit))
+  const parsed = Number(limit)
+  const valid = Number.isInteger(parsed) && parsed >= 1 && parsed <= 50
+  const dirty = enabled !== view.enabled || parsed !== view.daily_limit
+
+  return (
+    <form
+      className="flex flex-wrap items-end gap-4 border-t border-slate-100 pt-4"
+      onSubmit={(event) => {
+        event.preventDefault()
+        update.mutate(
+          { enabled, daily_limit: parsed },
+          { onSuccess: () => toast.success('Practice feedback settings saved'), onError: (e) => toast.error(errorMessage(e)) },
+        )
+      }}
+    >
+      <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+        <input type="checkbox" checked={enabled} onChange={(event) => setEnabled(event.target.checked)} className="size-4 accent-brand-600" />
+        Students can get AI feedback
+      </label>
+      <label className="text-sm font-medium text-slate-700">
+        Answers per student per day
+        <input
+          type="number"
+          min={1}
+          max={50}
+          value={limit}
+          onChange={(event) => setLimit(event.target.value)}
+          aria-invalid={!valid}
+          className="mt-1 block h-10 w-28 rounded-xl border-0 px-3 text-sm ring-1 ring-slate-300 ring-inset focus:ring-2 focus:ring-brand-500"
+        />
+      </label>
+      <Button type="submit" size="md" disabled={!dirty || !valid} loading={update.isPending}>
+        Save
+      </Button>
+      {!valid && <span className="text-sm text-rose-700">Choose 1 to 50.</span>}
+    </form>
+  )
+}
+
+function PracticeCard() {
+  const practice = usePracticeSettings()
+  const canManage = useCan('settings.manage')
+  const view = practice.data
+  return (
+    <Card>
+      <CardHeader
+        title="Interview practice feedback"
+        description="Students record a spoken answer; the AI transcribes it and scores it like an interviewer. Its calls appear here as Practice transcription and Practice feedback."
+        action={view && (view.enabled ? <Badge tone="success">On</Badge> : <Badge>Off</Badge>)}
+      />
+      <div className="space-y-4 p-5">
+        {practice.isPending ? (
+          <Skeleton className="h-24" />
+        ) : practice.isError ? (
+          <Alert>{errorMessage(practice.error)}</Alert>
+        ) : view ? (
+          <>
+            {!view.ai_configured && <Alert tone="info">Feedback needs the OpenRouter key. Until then students can record and rewatch, without scores.</Alert>}
+            <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {[
+                { label: 'Answers, last 7 days', value: formatCount(view.last_7_days.attempts) },
+                { label: 'Students', value: formatCount(view.last_7_days.students) },
+                { label: 'Average score', value: view.last_7_days.average_score !== null ? `${view.last_7_days.average_score.toFixed(1)} / 10` : '—' },
+                { label: 'Cost, last 7 days', value: formatUsd(view.last_7_days.cost_usd) },
+              ].map((stat) => (
+                <div key={stat.label}>
+                  <dt className="text-xs font-medium text-slate-500">{stat.label}</dt>
+                  <dd className="mt-1 text-xl font-semibold text-slate-900 tabular-nums">{stat.value}</dd>
+                </div>
+              ))}
+            </dl>
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+              <Mic className="size-3.5" aria-hidden />
+              Up to {Math.round(view.max_seconds / 60)} min per answer · speech-to-text <code className="font-mono">{view.transcription_model}</code> · feedback{' '}
+              <code className="font-mono">{view.feedback_model}</code> · {view.daily_limit} answers per student per day. Students&apos; videos never reach the server, and
+              their voice is deleted after scoring.
+            </p>
+            {canManage ? <PracticeControls key={`${view.enabled}-${view.daily_limit}`} view={view} /> : null}
+          </>
+        ) : null}
       </div>
     </Card>
   )
@@ -348,6 +439,7 @@ export default function UsageTab() {
       )}
 
       <ProviderCard />
+      <PracticeCard />
 
       {current && (
         <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">

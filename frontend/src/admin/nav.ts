@@ -1,5 +1,6 @@
 import {
   Activity,
+  BarChart3,
   Brain,
   Database,
   FolderTree,
@@ -38,6 +39,7 @@ export const ADMIN_NAV: NavItem[] = [
   { to: '/admin/content', label: 'Content studio', icon: LibraryBig, anyOf: CONTENT },
   { to: '/admin/topics', label: 'Domains & topics', icon: FolderTree, anyOf: ['taxonomy.manage', ...CONTENT] },
   { to: '/admin/students', label: 'Students', icon: GraduationCap, anyOf: ['students.view'] },
+  { to: '/admin/analytics', label: 'Analytics', icon: BarChart3, anyOf: ['analytics.view'] },
   { to: '/admin/agents/runs', label: 'Agent runs', icon: Activity, anyOf: ['agents.view'] },
   {
     to: '/admin/settings',

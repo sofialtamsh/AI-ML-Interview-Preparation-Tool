@@ -159,6 +159,7 @@ class GenerateSkipped(ApiModel):
 
 class ContentJob(AgentJob):
     topic: TopicRefOut | None
+    batch_id: uuid.UUID | None = None
 
 
 class ContentJobDetail(ContentJob):

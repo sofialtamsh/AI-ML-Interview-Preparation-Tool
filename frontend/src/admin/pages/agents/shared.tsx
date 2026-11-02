@@ -21,7 +21,7 @@ import { errorMessage } from '../../../lib/api'
 import { formatDateTime, formatUsd } from '../../../lib/format'
 import type { AgentJob, AgentStatus, ContentJobDetail, JobKind, TopicSignal, Trend } from '../../../lib/types'
 import { useCan } from '../../api'
-import { useContentJob, useStopContentJob } from '../../contentApi'
+import { useContentJob, useRetryContentJob, useStopContentJob } from '../../contentApi'
 import { useAgentJob, useRetryAgentJob, useStopAgentJob } from '../../intelApi'
 import { duration, isActive, JobStatusBadge } from '../sources/shared'
 
@@ -32,9 +32,10 @@ export const KIND_LABELS: Record<JobKind, string> = {
   market_research: 'Market research',
   content_generation: 'Content generation',
   content_narration: 'Narration',
+  content_review: 'AI review',
 }
 
-const CONTENT_KINDS: JobKind[] = ['content_generation', 'content_narration']
+const CONTENT_KINDS: JobKind[] = ['content_generation', 'content_narration', 'content_review']
 
 /** Labels for the counters each kind of run reports, in display order. */
 const RESULT_LABELS: Record<JobKind, [string, string][]> = {
@@ -73,6 +74,11 @@ const RESULT_LABELS: Record<JobKind, [string, string][]> = {
     ['failed', 'Failed'],
   ],
   content_narration: [['scenes_narrated', 'Scenes narrated']],
+  content_review: [
+    ['issues', 'Issues'],
+    ['errors', 'Serious'],
+    ['dropped', 'Dropped (quote not in content)'],
+  ],
 }
 
 export function resultCounts(job: Pick<AgentJob, 'kind' | 'result'>): { label: string; value: number }[] {
@@ -105,6 +111,10 @@ export function runHeadline(job: AgentJob): string {
   if (job.kind === 'content_narration') {
     if (isActive(job)) return job.progress_total ? `Narrating ${job.progress_done} of ${job.progress_total} scenes` : 'Starting'
     return `${job.result.scenes_narrated ?? 0} scene(s) narrated`
+  }
+  if (job.kind === 'content_review') {
+    if (isActive(job)) return 'Reviewing'
+    return `${job.result.issues ?? 0} issue(s), ${job.result.errors ?? 0} serious`
   }
   return resultCounts(job)
     .filter((c) => c.value)
@@ -181,6 +191,17 @@ function payloadSummary(kind: JobKind, payload: Record<string, unknown>): string
       .filter(Boolean)
       .join(' · ')
   }
+  if (kind === 'content_generation' && payload.mode === 'revise') {
+    return [
+      'Revision',
+      payload.use_review ? 'used the AI review' : null,
+      payload.instructions ? `“${String(payload.instructions).slice(0, 80)}”` : null,
+      `limit ${formatUsd(String(payload.max_cost_usd))}`,
+    ]
+      .filter(Boolean)
+      .join(' · ')
+  }
+  if (kind === 'content_review') return `limit ${formatUsd(String(payload.max_cost_usd))}`
   if (kind === 'content_generation') {
     return [
       (payload.components as string[] | undefined)?.join(', '),
@@ -204,15 +225,26 @@ export function AgentRunDialog({ jobId, onClose, scope = 'agents' }: { jobId: st
   const stopContent = useStopContentJob()
   const stop = scope === 'agents' ? stopAgent : stopContent
   const retry = useRetryAgentJob()
+  const retryContent = useRetryContentJob()
   const toast = useToast()
   const canRunAgents = useCan('agents.run')
   const canManageSources = useCan('sources.manage')
   const canGenerate = useCan('content.generate')
+  const canReview = useCan('content.review', 'content.publish')
   const data = job.data
   const isContent = !!data && CONTENT_KINDS.includes(data.kind)
   const contentTopic = data && 'topic' in data ? (data as ContentJobDetail).topic : null
   const canControl =
-    data && (isContent ? canGenerate : data.kind === 'exploration' || data.kind === 'market_research' ? canRunAgents : canManageSources)
+    data &&
+    (data.kind === 'content_review'
+      ? canReview
+      : isContent
+        ? canGenerate
+        : data.kind === 'exploration' || data.kind === 'market_research'
+          ? canRunAgents
+          : canManageSources)
+  // Content runs retry only what didn't finish (the server works out what that is).
+  const contentRetryable = !!data && isContent && !isActive(data) && data.status !== 'succeeded'
   const settings = data ? payloadSummary(data.kind, data.payload) : null
 
   return (
@@ -254,6 +286,24 @@ export function AgentRunDialog({ jobId, onClose, scope = 'agents' }: { jobId: st
               }
             >
               Run again
+            </Button>
+          )}
+          {data && canControl && contentRetryable && (
+            <Button
+              variant="secondary"
+              icon={<RotateCcw className="size-3.5" />}
+              loading={retryContent.isPending}
+              onClick={() =>
+                retryContent.mutate(data.id, {
+                  onSuccess: () => {
+                    toast.success("Retrying what didn't finish")
+                    onClose()
+                  },
+                  onError: (e) => toast.error(errorMessage(e)),
+                })
+              }
+            >
+              Retry what didn&apos;t finish
             </Button>
           )}
           <Button onClick={onClose}>Close</Button>

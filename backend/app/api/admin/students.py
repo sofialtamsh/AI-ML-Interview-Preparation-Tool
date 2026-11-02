@@ -1,4 +1,5 @@
 import uuid
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, or_, select
@@ -12,15 +13,25 @@ from app.core.audit import record_audit
 from app.core.db import get_db
 from app.core.security import utcnow
 from app.models import AuthSession, Cohort, LoginEvent, Student, StudentStatus
+from app.progress.analytics import (
+    attention_conditions,
+    learning_columns,
+    learning_snapshot,
+    student_learning,
+    with_learning,
+)
 from app.schemas.admin import (
     CohortCreate,
     CohortWithCount,
+    LearningSnapshot,
     LoginEventOut,
     StudentDetail,
     StudentListItem,
+    StudentRow,
     StudentUpdate,
 )
 from app.schemas.common import Page
+from app.schemas.progress import StudentLearning
 
 router = APIRouter(tags=["admin-students"])
 
@@ -60,15 +71,16 @@ def _detail(db: Session, student: Student) -> StudentDetail:
     )
 
 
-@router.get("/students", response_model=Page[StudentListItem], dependencies=[Depends(can_view)])
+@router.get("/students", response_model=Page[StudentRow], dependencies=[Depends(can_view)])
 def list_students(
     q: str | None = Query(default=None, max_length=200),
     status_filter: StudentStatus | None = Query(default=None, alias="status"),
     cohort_id: uuid.UUID | None = None,
+    attention: Literal["any", "inactive", "struggling"] | None = None,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=25, ge=1, le=100),
     db: Session = Depends(get_db),
-) -> Page[StudentListItem]:
+) -> Page[StudentRow]:
     conditions = []
     if q and q.strip():
         term = q.strip()
@@ -83,16 +95,25 @@ def list_students(
     if cohort_id is not None:
         conditions.append(Student.cohort_id == cohort_id)
 
-    total = db.scalar(select(func.count()).select_from(Student).where(*conditions)) or 0
-    students = db.scalars(
-        select(Student)
+    query, cols = with_learning(select(Student))
+    if attention is not None:
+        conditions += attention_conditions(cols, attention)
+    total = db.scalar(select(func.count()).select_from(query.where(*conditions).subquery())) or 0
+    rows = db.execute(
+        query.add_columns(*learning_columns(cols))
         .where(*conditions)
         .order_by(Student.created_at.desc(), Student.student_number.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
-    ).all()
+    ).unique()
     return Page(
-        items=[StudentListItem.of(s) for s in students],
+        items=[
+            StudentRow(
+                **StudentListItem.of(row[0]).model_dump(),
+                learning=LearningSnapshot(**learning_snapshot(row, row[0].created_at)),
+            )
+            for row in rows
+        ],
         total=total,
         page=page,
         page_size=page_size,
@@ -104,6 +125,18 @@ def list_students(
 )
 def get_student(student_id: uuid.UUID, db: Session = Depends(get_db)) -> StudentDetail:
     return _detail(db, _get_student(db, student_id))
+
+
+@router.get(
+    "/students/{student_id}/learning",
+    response_model=StudentLearning,
+    response_model_by_alias=True,
+    dependencies=[Depends(can_view)],
+)
+def get_student_learning(student_id: uuid.UUID, db: Session = Depends(get_db)) -> StudentLearning:
+    """Progress, quiz attempts, practice scores and recent activity. No transcripts."""
+    student = _get_student(db, student_id)
+    return StudentLearning.model_validate(student_learning(db, student.id))
 
 
 @router.patch("/students/{student_id}", response_model=StudentDetail)
